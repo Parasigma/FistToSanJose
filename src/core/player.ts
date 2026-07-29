@@ -88,20 +88,19 @@ export class Player {
         cam.speed = this.baseSpeed * 1.75;
         this.sprinting = true;
       }
-      // Agacharse va en [C], NO en CTRL: mantener CTRL y pulsar W es Ctrl+W,
-      // atajo reservado del navegador que CIERRA la pestaña y no se puede
-      // cancelar desde la página. Con CTRL se perdía la partida en marcha.
-      if (e.code === "KeyC") this.crouched = true;
+      // Agacharse es CONMUTADOR: [C] agacha y [C] vuelve a levantar, no hay
+      // que mantenerla pulsada. (Va en [C] y no en CTRL porque mantener CTRL
+      // y pulsar W es Ctrl+W, atajo del navegador que cierra la pestaña.)
+      if (e.code === "KeyC" && !e.repeat) this.crouched = !this.crouched;
     });
     document.addEventListener("keyup", (e) => {
       if (e.code === "ShiftLeft") {
         cam.speed = this.baseSpeed;
         this.sprinting = false;
       }
-      if (e.code === "KeyC") this.crouched = false;
     });
     window.addEventListener("blur", () => {
-      this.crouched = false;
+      // el agachado se conserva al volver a la ventana: es un estado, no una tecla
       this.sprinting = false;
     });
 
