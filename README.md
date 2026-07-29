@@ -1,12 +1,23 @@
 # FIRST TO SAN JOSE
 
+## ▶ Jugar online
+
+**https://parasigma.github.io/FistToSanJose/**
+
+Funciona en cualquier navegador moderno de escritorio (Chrome, Edge, Firefox). No hay
+nada que instalar: se abre el enlace y a jugar. La primera carga descarga ~6 MB.
+
+Cada vez que se sube un cambio a `main`, GitHub Actions reconstruye el juego y
+actualiza esa dirección automáticamente (ver `.github/workflows/deploy.yml`).
+
+
 Survival horror en primera persona con estética retro noventera (estilo PSX), hecho con **Babylon.js + TypeScript + Vite**. Inspirado en el formato y estilo visual de los juegos episódicos de terror low-poly, pero con historia propia.
 
 **Episodio 1 — Sanatorio San José.** Eres Mario Matas (Paciente Nº 0034), interno de ingreso involuntario. A las 3:47 AM alguien ha abierto la puerta de tu habitación y una nota firmada por "C.M." te empuja a bajar. Explora la planta 2, habla con los otros internos (Nikuman, el Chus, Montreal...) y con el celador Ortiz, resuelve los puzles y llega a la escalera.
 
 El juego comparte universo con la aventura gráfica "Los Enfermos" (misma carpeta de Documentos): **toda la biblia narrativa adaptada está en [LORE.md](LORE.md)** — personajes, el misterio del Director Rovira, el giro maestro y las reglas de tono. Leerla antes de escribir nuevos diálogos o niveles.
 
-## Cómo jugar
+## Desarrollo local
 
 ```bash
 npm install
@@ -14,6 +25,12 @@ npm run dev
 ```
 
 Abre `http://localhost:5173` en el navegador.
+
+Para publicar los cambios en la web basta con subirlos:
+
+```bash
+git add -A && git commit -m "lo que sea" && git push
+```
 
 | Tecla | Acción |
 | --- | --- |
