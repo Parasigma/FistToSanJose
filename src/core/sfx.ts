@@ -248,6 +248,11 @@ export class Sfx {
     }
   }
 
+  /** "¿Eh?" — el celador ha notado algo y se para a mirar. */
+  suspect() {
+    this.tone(300, 0.12, 0.06, "square", 380);
+  }
+
   /** Grito de alerta del celador al verte. */
   alert() {
     this.tone(220, 0.16, 0.12, "sawtooth", 340);
@@ -268,6 +273,13 @@ export class Sfx {
   lockClack() {
     this.noiseBurst(0.05, 1800, 3, 0.16, "bandpass");
     this.tone(220, 0.09, 0.12, "square", 170);
+  }
+
+  /** Cascote rebotando lejos: el ruido que atrae a los celadores. */
+  throwHit() {
+    this.noiseBurst(0.07, 1500, 2.5, 0.13, "bandpass");
+    setTimeout(() => this.noiseBurst(0.05, 2100, 3, 0.08, "bandpass"), 110);
+    setTimeout(() => this.noiseBurst(0.04, 2600, 3, 0.05, "bandpass"), 190);
   }
 
   /** Golpe seco de cuerpo contra el suelo. */

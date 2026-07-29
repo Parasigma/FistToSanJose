@@ -663,7 +663,9 @@ export function buildLevel2(game: Game) {
   nik.root.setEnabled(false);
   nik.hit.checkCollisions = false; // no hace nada: solo asusta
 
-  const lineas = [
+  // Frases distintas según dónde te lo encuentres: en Admisiones (planta 1)
+  // y en el ALA C, donde el contexto es el sigilo y los celadores.
+  const lineasP1 = [
     "¿Qué? Ando descalzo. No hago ruido.\nEso no es acercarse en plan raro. Es ahorro de suela.",
     "¿Te he asustado? Elizabeth dice que tengo cara de susto.\nDe dar, no de tener. Luego se ríe. Nadie más se ríe.",
     "Shhh. Estoy contando tus pasos.\nLlevas cuatro mil quinientos doce desde ayer. Malos, la mayoría.",
@@ -677,10 +679,28 @@ export function buildLevel2(game: Game) {
     "El de mantenimiento marcaba sus escondites\ncon pintura de esa que no se ve.\nApaga su luz. Enciende la tuya. En ese orden.",
     "Mi hermano Cauntu me prometió visión nocturna\npara el Niku-Borg 9000.\nAsí YO nunca necesitaré linterna. Tú sigue con la tuya, MM.",
   ];
+  const lineasAlaC = [
+    "A mí los celadores no me ven.\nNo es sigilo. Es que han decidido que no merezco la ronda.\nDuele, pero se agradece.",
+    "GUZMÁN huele a tabaco frío.\nCuando el pasillo huela a eso, ya lo tienes encima.\nDe nada, MM.",
+    "Los armarios de aquí son mejores que mi habitación.\nMás anchos. Más limpios.\nHe dormido en cuatro. Los tengo puntuados.",
+    "Si te agachas dejas de sonar.\nSi corres, suenas como un carro de bandejas.\nElige tú, que aquí el que corre eres tú.",
+    "Esa puerta de arriba da a la azotea.\nDicen que desde allí se ve el ala que no existe.\nYo no he mirado. Yo qué sé. Yo no miro.",
+    "Cuenta las camas del dormitorio.\nAhora cuenta a los que duermen.\nNo cuadra, ¿verdad? Pues eso llevo yo tres años.",
+    "Antes esto era la planta de los ruidosos.\nAhora es la planta de los silenciosos.\nMismos internos. Nadie se ha ido.",
+    "Yo aquí no me escondo.\n¿Para qué? Si me pillan, me llevan a mi cuarto.\nA ti te llevan a otro sitio.",
+    "El de la tarjeta roja se cree que nadie mira su bolsillo.\nYo miro TODOS los bolsillos.\nEs lo único que me queda por hacer.",
+    "Shhh. Viene alguien.\n(...)\nMentira. Pero mírate la cara. Impagable.",
+  ];
   let bolsa: number[] = [];
+  let bolsaNivel = -1;
   const frase = () => {
-    if (!bolsa.length) bolsa = lineas.map((_, i) => i).sort(() => Math.random() - 0.5);
-    return lineas[bolsa.pop()!];
+    const nv = (state.get("nivel") as number) ?? 1;
+    const set = nv === 4 ? lineasAlaC : lineasP1;
+    if (!bolsa.length || bolsaNivel !== nv) {
+      bolsaNivel = nv;
+      bolsa = set.map((_, i) => i).sort(() => Math.random() - 0.5);
+    }
+    return set[bolsa.pop()! % set.length];
   };
   game.register(nik.hit, "npcNikuman2", "Hablar con Nikuman", () =>
     game.talk({ s: { speaker: "NIKUMAN", text: frase() } }, "s")

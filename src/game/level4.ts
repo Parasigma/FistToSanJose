@@ -69,10 +69,18 @@ interface Celador {
   nombre: string;
   npc: NPC;
   col: Mesh;
-  ruta: Ruta[];
+  /** Puntos de su ronda (guion). */
+  patrulla: Ruta[];
+  /** Ruta calculada por el mapa hasta el objetivo actual. */
+  ruta: Vector3[];
+  rutaDest: Vector3;
+  rutaHasta: number;
+  atasco: number;
   idx: number;
   yaw: number;
-  estado: "ronda" | "espera" | "caza" | "busca";
+  icono: Mesh;
+  estado: "ronda" | "espera" | "caza" | "busca" | "sospecha";
+  sospechaHasta: number;
   esperaHasta: number;
   buscaHasta: number;
   lastSeen: Vector3;
@@ -208,13 +216,98 @@ export function buildLevel4(game: Game) {
   });
 
   // ------------------------------------------------------------- escondites
+  // ------------------------------------------------------------- iconos de alerta
+  const iconoTex = (dibujo: (c: CanvasRenderingContext2D) => void) => {
+    const dt = new DynamicTexture("alertT" + Math.random(), { width: 128, height: 128 }, scene, false, Texture.NEAREST_SAMPLINGMODE);
+    const c = dt.getContext() as unknown as CanvasRenderingContext2D;
+    c.clearRect(0, 0, 128, 128);
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    dibujo(c);
+    dt.update();
+    dt.hasAlpha = true;
+    return dt;
+  };
+  const iconoMat = (tex: DynamicTexture) => {
+    const m = new StandardMaterial("alertM" + Math.random(), scene);
+    m.diffuseTexture = tex;
+    m.opacityTexture = tex;
+    m.emissiveTexture = tex;
+    m.emissiveColor = new Color3(1, 1, 1);
+    m.diffuseColor = Color3.Black();
+    m.specularColor = Color3.Black();
+    m.disableLighting = true;
+    m.backFaceCulling = false;
+    return m;
+  };
+  const halo = (c: CanvasRenderingContext2D, color: string) => {
+    c.fillStyle = "rgba(8,8,10,0.72)";
+    c.beginPath();
+    c.arc(64, 64, 46, 0, Math.PI * 2);
+    c.fill();
+    c.strokeStyle = color;
+    c.lineWidth = 5;
+    c.stroke();
+  };
+  const matDuda = iconoMat(
+    iconoTex((c) => {
+      halo(c, "#e8c86a");
+      c.fillStyle = "#e8c86a";
+      c.font = "bold 78px 'Courier New'";
+      c.fillText("?", 64, 68);
+    })
+  );
+  const matAviso = iconoMat(
+    iconoTex((c) => {
+      halo(c, "#ffd23a");
+      c.fillStyle = "#ffd23a";
+      c.font = "bold 82px 'Courier New'";
+      c.fillText("!", 64, 66);
+    })
+  );
+  const matFuria = iconoMat(
+    iconoTex((c) => {
+      halo(c, "#e0442e");
+      c.fillStyle = "#e0442e";
+      c.font = "bold 82px 'Courier New'";
+      c.fillText("!", 64, 66);
+      // rayitas de enfado
+      c.strokeStyle = "#e0442e";
+      c.lineWidth = 6;
+      for (const [x1, y1, x2, y2] of [[24, 22, 40, 34], [104, 22, 88, 34], [18, 52, 30, 52]]) {
+        c.beginPath();
+        c.moveTo(x1, y1);
+        c.lineTo(x2, y2);
+        c.stroke();
+      }
+    })
+  );
+
   interface Escondite {
     tipo: "armario" | "mesa";
     dentro: Vector3;
     salida: Vector3;
+    /** Hacia dónde mira la rendija (para limitar el giro de cabeza). */
+    yaw: number;
   }
   let escondido: Escondite | null = null;
   let armarioN = 0;
+
+  // Escondido puedes asomarte: giras la cabeza dentro de un margen para ver
+  // por dónde vienen, pero sin poder mirar a tu espalda (estás metido ahí).
+  document.addEventListener("mousemove", (e) => {
+    if (!escondido || !game.playing) return;
+    const cam = game.player.camera;
+    const dx = document.pointerLockElement ? e.movementX || 0 : 0;
+    const dy = document.pointerLockElement ? e.movementY || 0 : 0;
+    if (!dx && !dy) return;
+    const sens = 0.0021;
+    const limH = escondido.tipo === "armario" ? 0.62 : 0.95; // rad
+    let rel = cam.rotation.y - escondido.yaw + dx * sens;
+    rel = Math.atan2(Math.sin(rel), Math.cos(rel));
+    cam.rotation.y = escondido.yaw + Math.max(-limH, Math.min(limH, rel));
+    cam.rotation.x = Math.max(-0.45, Math.min(0.5, cam.rotation.x + dy * sens));
+  });
 
   const esconder = (e: Escondite) => {
     if (escondido || game.uiBlocked() || state.get("nivel") !== 4) return;
@@ -229,6 +322,8 @@ export function buildLevel4(game: Game) {
     game.player.lockY = false;
     const cam = game.player.camera;
     cam.position.set(e.dentro.x, e.dentro.y, e.dentro.z);
+    cam.rotation.set(0, e.yaw, 0); // mirando por la rendija
+    game.tryLock(); // el ratón sigue capturado: se puede asomar
     const ui = document.getElementById("hide-ui")!;
     ui.classList.remove("hidden");
     ui.classList.toggle("mesa", e.tipo === "mesa");
@@ -271,6 +366,7 @@ export function buildLevel4(game: Game) {
           tipo: "armario",
           dentro: new Vector3(x + dirx * 0.12, 1.45, z + dirz * 0.12),
           salida: new Vector3(x + dirx * 1.15, 0, z + dirz * 1.15),
+          yaw: ry,
         }),
       () => state.get("nivel") === 4 && !escondido
     );
@@ -293,6 +389,7 @@ export function buildLevel4(game: Game) {
           tipo: "mesa",
           dentro: new Vector3(x, 0.5, z),
           salida: new Vector3(x + Math.sin(ry) * 1.5, 0, z + Math.cos(ry) * 1.5),
+          yaw: ry,
         }),
       () => state.get("nivel") === 4 && !escondido
     );
@@ -566,14 +663,27 @@ export function buildLevel4(game: Game) {
     col.visibility = 0;
     col.isPickable = false;
     col.ellipsoid = new Vector3(0.34, 0.8, 0.34);
+    const icono = MeshBuilder.CreatePlane("alerta_" + d.nombre, { size: 0.62 }, scene);
+    icono.billboardMode = Mesh.BILLBOARDMODE_ALL;
+    icono.position.y = 2.35;
+    icono.parent = npc.root;
+    icono.isPickable = false;
+    icono.material = matDuda;
+    icono.setEnabled(false);
     const g: Celador = {
       nombre: d.nombre,
       npc,
       col,
-      ruta: d.ruta,
+      patrulla: d.ruta,
+      ruta: [],
+      rutaDest: new Vector3(1e9, 0, 1e9),
+      rutaHasta: 0,
+      atasco: 0,
       idx: 0,
       yaw: 0,
+      icono,
       estado: "ronda",
+      sospechaHasta: 0,
       esperaHasta: 0,
       buscaHasta: 0,
       lastSeen: new Vector3(),
@@ -601,12 +711,18 @@ export function buildLevel4(game: Game) {
       },
       () => puedeRobarse(g)
     );
+    minimap.trackNpc(4, () => ({
+      x: g.npc.root.position.x,
+      z: g.npc.root.position.z,
+      estado: g.estado,
+    }));
     return g;
   });
+  minimap.registerRoutes(4, defs.map((d) => d.ruta.map((w) => ({ x: w.x, z: w.z }))));
 
   const puedeRobarse = (g: Celador) => {
     if (state.get("nivel") !== 4 || escondido || g.estado !== "espera") return false;
-    const wp = g.ruta[g.idx];
+    const wp = g.patrulla[g.idx];
     if (!wp?.a) return false; // solo cuando está ocupado en algo
     const cam = game.player.camera;
     const dx = cam.position.x - g.col.position.x;
@@ -622,11 +738,123 @@ export function buildLevel4(game: Game) {
       g.idx = 0;
       g.estado = "ronda";
       g.spotObjetivo = null;
-      g.col.position.set(g.ruta[0].x, 0.9, g.ruta[0].z);
-      g.npc.root.position.set(g.ruta[0].x, 0, g.ruta[0].z);
+      g.col.position.set(g.patrulla[0].x, 0.9, g.patrulla[0].z);
+      g.npc.root.position.set(g.patrulla[0].x, 0, g.patrulla[0].z);
+      g.ruta = [];
+      g.rutaHasta = 0;
+      g.atasco = 0;
       g.npc.setMoving(false);
     }
   };
+
+  // ------------------------------------------------------------- piedras
+  const matPiedra = colorMat(scene, "piedra4", "#6e6a60");
+  const piedrasSuelo: Mesh[] = [];
+  const mkPiedraSuelo = (x: number, z: number) => {
+    if (state.get("piedras_cogidas")) return;
+    const p = MeshBuilder.CreatePolyhedron("piedraSuelo", { type: 1, size: 0.11 }, scene);
+    p.position.set(x, 0.1, z);
+    p.rotation.set(Math.random(), Math.random(), Math.random());
+    p.material = matPiedra;
+    piedrasSuelo.push(p);
+    game.register(p, "piedra_" + piedrasSuelo.length, "Coger un puñado de cascotes", () => {
+      state.set("piedras_cogidas");
+      state.addItem({
+        id: "piedras",
+        name: "Cascotes",
+        desc: "Trozos de yeso del techo del almacén. Sirven para dos cosas: no servir de nada, y hacer ruido lejos de ti. [G] para lanzar.",
+      });
+      for (const q of piedrasSuelo) q.dispose();
+      game.sfx.pickup();
+      game.notify("Cascotes en el bolsillo. [G] para lanzarlos y distraer.", 4200);
+    });
+  };
+  mkPiedraSuelo(13.4, 228.6);
+  mkPiedraSuelo(12.6, 227.9);
+  mkPiedraSuelo(46.2, 224.4);
+
+  // ruido en un punto: los celadores cercanos van a mirar
+  const ruidoEn = (p: Vector3, radio: number) => {
+    for (const g of celadores) {
+      if (g.estado === "caza") continue;
+      if (Vector3.Distance(g.col.position, p) > radio) continue;
+      g.estado = "busca";
+      g.target.copyFrom(p);
+      g.buscaHasta = 0;
+      g.ruta = [];
+      g.rutaHasta = 0;
+    }
+  };
+
+  const piedraMesh = MeshBuilder.CreatePolyhedron("piedraVuelo", { type: 1, size: 0.1 }, scene);
+  piedraMesh.material = matPiedra;
+  piedraMesh.isPickable = false;
+  piedraMesh.setEnabled(false);
+  let piedraVel: Vector3 | null = null;
+  const marcaImpacto = MeshBuilder.CreateDisc("marcaRuido", { radius: 0.9, tessellation: 20 }, scene);
+  marcaImpacto.rotation.x = Math.PI / 2;
+  marcaImpacto.isPickable = false;
+  const matMarca = new StandardMaterial("marcaRuidoM", scene);
+  matMarca.emissiveColor = new Color3(1, 0.85, 0.3);
+  matMarca.diffuseColor = Color3.Black();
+  matMarca.specularColor = Color3.Black();
+  matMarca.alpha = 0;
+  matMarca.disableLighting = true;
+  marcaImpacto.material = matMarca;
+  marcaImpacto.setEnabled(false);
+  let marcaHasta = 0;
+
+  const lanzarPiedra = () => {
+    if (state.get("nivel") !== 4 || !game.playing || game.uiBlocked() || escondido) return;
+    if (!state.has("piedras")) {
+      game.notify("No llevas nada que lanzar.");
+      return;
+    }
+    if (piedraVel) return;
+    const cam = game.player.camera;
+    const dir = cam.getDirection(Vector3.Forward()).normalize();
+    piedraMesh.position.copyFrom(cam.position).addInPlace(dir.scale(0.6));
+    piedraMesh.setEnabled(true);
+    piedraVel = dir.scale(13).add(new Vector3(0, 2.4, 0));
+    game.sfx.step();
+  };
+  document.addEventListener("keydown", (e) => {
+    if (e.code === "KeyG" && !e.repeat) lanzarPiedra();
+  });
+
+  game.onUpdate.push(() => {
+    const ahora = performance.now();
+    if (piedraVel) {
+      const dt = 1 / 60;
+      piedraVel.y -= 22 * dt;
+      const paso = piedraVel.scale(dt);
+      const destino = piedraMesh.position.add(paso);
+      const ray = new Ray(piedraMesh.position, paso.clone().normalize(), paso.length() + 0.12);
+      const hit = scene.pickWithRay(ray, (m) => m.checkCollisions && m.isEnabled());
+      if (hit?.hit || destino.y < 0.1) {
+        const punto = hit?.pickedPoint ?? new Vector3(destino.x, 0.1, destino.z);
+        piedraMesh.setEnabled(false);
+        piedraVel = null;
+        game.sfx.throwHit();
+        ruidoEn(punto, 17);
+        marcaImpacto.position.set(punto.x, 0.06, punto.z);
+        marcaImpacto.setEnabled(true);
+        marcaHasta = ahora + 2600;
+      } else {
+        piedraMesh.position.copyFrom(destino);
+        piedraMesh.rotation.x += 0.3;
+        piedraMesh.rotation.y += 0.22;
+      }
+    }
+    if (marcaImpacto.isEnabled()) {
+      const queda = marcaHasta - ahora;
+      if (queda <= 0) marcaImpacto.setEnabled(false);
+      else {
+        matMarca.alpha = 0.5 * (queda / 2600) * (0.6 + 0.4 * Math.sin(ahora / 90));
+        marcaImpacto.scaling.setAll(1 + (1 - queda / 2600) * 1.2);
+      }
+    }
+  });
 
   // ------------------------------------------------------------- captura
   let atrapado = false;
@@ -659,18 +887,107 @@ export function buildLevel4(game: Game) {
   const prevCam = new Vector3();
   let prevCamInit = false;
 
-  const mover = (g: Celador, tx: number, tz: number, v: number, dt: number): boolean => {
-    const dx = tx - g.col.position.x;
-    const dz = tz - g.col.position.z;
-    const d = Math.hypot(dx, dz);
-    if (d < 0.5) {
+  // --- navegación por la rejilla del mapa (antes iban en línea recta y se
+  // quedaban clavados contra las esquinas persiguiéndote sin avanzar) ---
+  const celdaLibre = (c: number, r: number) => MAP4[r]?.[c] === ".";
+  const aCelda = (x: number, z: number): [number, number] => [
+    Math.floor(x / T),
+    Math.floor((z - Z_OFF) / T),
+  ];
+
+  /** BFS por celdas; devuelve la ruta de centros de casilla hasta el destino. */
+  const buscarRuta = (x0: number, z0: number, x1: number, z1: number): Vector3[] => {
+    const [c0, r0] = aCelda(x0, z0);
+    const [c1, r1] = aCelda(x1, z1);
+    if (!celdaLibre(c0, r0) || !celdaLibre(c1, r1)) return [];
+    if (c0 === c1 && r0 === r1) return [];
+    const filas = MAP4.length;
+    const cols = MAP4[0].length;
+    const prev = new Int32Array(filas * cols).fill(-1);
+    const visto = new Uint8Array(filas * cols);
+    const idx = (c: number, r: number) => r * cols + c;
+    const cola: number[] = [idx(c0, r0)];
+    visto[idx(c0, r0)] = 1;
+    let found = false;
+    for (let qi = 0; qi < cola.length && !found; qi++) {
+      const cur = cola[qi];
+      const cc = cur % cols;
+      const rr = (cur - cc) / cols;
+      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+        const nc = cc + dc;
+        const nr = rr + dr;
+        if (nc < 0 || nr < 0 || nc >= cols || nr >= filas) continue;
+        const ni = idx(nc, nr);
+        if (visto[ni] || !celdaLibre(nc, nr)) continue;
+        visto[ni] = 1;
+        prev[ni] = cur;
+        if (nc === c1 && nr === r1) {
+          found = true;
+          break;
+        }
+        cola.push(ni);
+      }
+    }
+    if (!found) return [];
+    const ruta: Vector3[] = [];
+    let cur = idx(c1, r1);
+    while (cur !== idx(c0, r0) && cur >= 0) {
+      const cc = cur % cols;
+      const rr = (cur - cc) / cols;
+      ruta.unshift(new Vector3((cc + 0.5) * T, 0, cz(rr)));
+      cur = prev[cur];
+    }
+    return ruta;
+  };
+
+  /** Avanza hacia (tx,tz) rodeando muros; true al llegar. */
+  const mover = (g: Celador, tx: number, tz: number, v: number, dt: number, directo = false): boolean => {
+    const gp = g.col.position;
+    const distFinal = Math.hypot(tx - gp.x, tz - gp.z);
+    if (distFinal < 0.5) {
       g.npc.setMoving(false);
+      g.ruta = [];
       return true;
     }
+    let px = tx;
+    let pz = tz;
+    if (!directo) {
+      const now = performance.now();
+      const objetivoCambiado = Math.hypot(tx - g.rutaDest.x, tz - g.rutaDest.z) > 1.2;
+      if (objetivoCambiado || !g.ruta.length || now > g.rutaHasta) {
+        g.ruta = buscarRuta(gp.x, gp.z, tx, tz);
+        g.rutaDest.set(tx, 0, tz);
+        g.rutaHasta = now + 900;
+      }
+      // consumir waypoints ya alcanzados
+      while (g.ruta.length && Math.hypot(g.ruta[0].x - gp.x, g.ruta[0].z - gp.z) < 0.75) g.ruta.shift();
+      if (g.ruta.length) {
+        px = g.ruta[0].x;
+        pz = g.ruta[0].z;
+      }
+    }
+    const dx = px - gp.x;
+    const dz = pz - gp.z;
+    const d = Math.hypot(dx, dz) || 1;
     const paso = Math.min(d, v * dt);
+    const antes = gp.clone();
     g.col.moveWithCollisions(new Vector3((dx / d) * paso, -0.02, (dz / d) * paso));
-    g.col.position.y = 0.9;
-    g.npc.root.position.set(g.col.position.x, 0, g.col.position.z);
+    gp.y = 0.9;
+    // atascado (choca y no avanza): recalcular ruta en el siguiente frame
+    if (Vector3.Distance(antes, gp) < paso * 0.25) {
+      g.atasco++;
+      if (g.atasco > 12) {
+        g.atasco = 0;
+        g.ruta = [];
+        g.rutaHasta = 0;
+        // empujoncito lateral para despegarse de la esquina
+        g.col.moveWithCollisions(new Vector3((-dz / d) * paso, 0, (dx / d) * paso));
+        gp.y = 0.9;
+      }
+    } else {
+      g.atasco = 0;
+    }
+    g.npc.root.position.set(gp.x, 0, gp.z);
     g.yaw = lerpAngle(g.yaw, Math.atan2(dx, dz), Math.min(1, dt * 8));
     g.npc.root.rotation.y = g.yaw;
     g.npc.setMoving(true);
@@ -696,6 +1013,12 @@ export function buildLevel4(game: Game) {
     const oculto = !!escondido;
     const agachado = game.player.crouched;
     const ruidoRadio = velJugador < 0.4 || oculto ? 0 : agachado ? 2 : game.player.sprinting ? 11 : 6.5;
+    // medidor de ruido del HUD: 0..1 sobre el máximo (correr = 11 m)
+    const cercano = celadores.reduce(
+      (min, g) => Math.min(min, Vector3.Distance(g.col.position, cam.position)),
+      Infinity
+    );
+    hud.noise(ruidoRadio / 11, ruidoRadio > 0 && cercano < ruidoRadio);
 
     let cazando = 0;
     for (const g of celadores) {
@@ -725,9 +1048,52 @@ export function buildLevel4(game: Game) {
         g.lastSeen.copyFrom(cam.position);
         g.lastLOS = now;
         if (g.estado !== "caza") {
-          g.estado = "caza";
-          game.sfx.alert();
+          // primero sospecha (te ha visto de refilón), luego te persigue
+          if (g.estado !== "sospecha") {
+            g.estado = "sospecha";
+            g.sospechaHasta = now + (dist < 4 ? 260 : 900);
+            g.ruta = [];
+            game.sfx.suspect();
+          } else if (now > g.sospechaHasta) {
+            g.estado = "caza";
+            game.sfx.alert();
+          }
         }
+      }
+
+      // icono sobre la cabeza (estilo Metal Gear)
+      if (g.estado === "caza") {
+        g.icono.material = matFuria;
+        g.icono.setEnabled(true);
+      } else if (g.estado === "busca") {
+        g.icono.material = matAviso;
+        g.icono.setEnabled(true);
+      } else if (g.estado === "sospecha") {
+        g.icono.material = matDuda;
+        g.icono.setEnabled(true);
+      } else {
+        g.icono.setEnabled(false);
+      }
+
+      if (g.estado === "sospecha") {
+        // se para y mira hacia lo que le ha extrañado
+        g.npc.setMoving(false);
+        const hx = (ve ? cam.position.x : g.lastSeen.x) - gp.x;
+        const hz = (ve ? cam.position.z : g.lastSeen.z) - gp.z;
+        g.yaw = lerpAngle(g.yaw, Math.atan2(hx, hz), Math.min(1, dt * 6));
+        g.npc.root.rotation.y = g.yaw;
+        if (now > g.sospechaHasta) {
+          if (ve) {
+            g.estado = "caza";
+            game.sfx.alert();
+          } else {
+            g.estado = "busca";
+            g.target.copyFrom(g.lastSeen);
+            g.buscaHasta = 0;
+            g.ruta = [];
+          }
+        }
+        continue;
       }
 
       if (g.estado === "caza") {
@@ -760,7 +1126,7 @@ export function buildLevel4(game: Game) {
             // vuelve al punto de ronda más cercano
             let mejor = 0;
             let mejorD = 1e9;
-            g.ruta.forEach((wp, i) => {
+            g.patrulla.forEach((wp, i) => {
               const d = Math.hypot(wp.x - gp.x, wp.z - gp.z);
               if (d < mejorD) {
                 mejorD = d;
@@ -768,24 +1134,25 @@ export function buildLevel4(game: Game) {
               }
             });
             g.idx = mejor;
+            g.ruta = [];
             g.estado = "ronda";
           }
         }
       } else if (g.estado === "espera") {
         g.npc.setMoving(false);
         if (now > g.esperaHasta) {
-          g.idx = (g.idx + 1) % g.ruta.length;
+          g.idx = (g.idx + 1) % g.patrulla.length;
           g.estado = "ronda";
         }
       } else {
         // ronda
-        const wp = g.ruta[g.idx];
+        const wp = g.patrulla[g.idx];
         if (mover(g, wp.x, wp.z, 1.75, dt)) {
           if (wp.w) {
             g.estado = "espera";
             g.esperaHasta = now + wp.w * 1000;
           } else {
-            g.idx = (g.idx + 1) % g.ruta.length;
+            g.idx = (g.idx + 1) % g.patrulla.length;
           }
         }
         // oído: el ruido lo atrae

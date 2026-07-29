@@ -4,6 +4,7 @@ interface MapDef {
   rows: string[];
   zOff: number;
   off?: HTMLCanvasElement;
+  rutas?: { x: number; z: number }[][];
 }
 
 /**
@@ -17,7 +18,16 @@ const SIZE = 160; // lado del lienzo del HUD
 const R = SIZE / 2 - 4; // radio del viewport
 
 /** PNJs visibles como puntos (los que acechan NO se registran aquí). */
-const npcs: { nivel: number; get: () => { x: number; z: number } | null }[] = [];
+const npcs: {
+  nivel: number;
+  get: () => { x: number; z: number; estado?: string } | null;
+}[] = [];
+
+const COLOR_ESTADO: Record<string, string> = {
+  caza: "#e0442e",
+  busca: "#ffd23a",
+  sospecha: "#e8c86a",
+};
 
 function buildOffscreen(def: MapDef): HTMLCanvasElement {
   const cols = def.rows[0].length;
@@ -45,6 +55,26 @@ function buildOffscreen(def: MapDef): HTMLCanvasElement {
       }
     }
   }
+  // rondas de los celadores, punteadas
+  if (def.rutas) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(224,168,90,0.5)";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    for (const ruta of def.rutas) {
+      if (ruta.length < 2) continue;
+      ctx.beginPath();
+      ruta.forEach((p, i) => {
+        const px = (p.x / 2) * OFF_SCALE;
+        const py = ((p.z - def.zOff) / 2) * OFF_SCALE;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.closePath();
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   return off;
 }
 
@@ -53,7 +83,15 @@ export const minimap = {
     maps.set(nivel, { rows, zOff });
   },
 
-  trackNpc(nivel: number, get: () => { x: number; z: number } | null) {
+  /** Rondas conocidas: se dibujan punteadas bajo el plano. */
+  registerRoutes(nivel: number, rutas: { x: number; z: number }[][]) {
+    const def = maps.get(nivel);
+    if (!def) return;
+    def.rutas = rutas;
+    def.off = undefined; // forzar redibujado del plano cacheado
+  },
+
+  trackNpc(nivel: number, get: () => { x: number; z: number; estado?: string } | null) {
     npcs.push({ nivel, get });
   },
 
@@ -109,12 +147,22 @@ export const minimap = {
       if (Math.hypot(rx, ry) > R - 6) continue;
       ctx.fillStyle = "#0a0a0c";
       ctx.beginPath();
-      ctx.arc(C + rx, C + ry, 4, 0, Math.PI * 2);
+      ctx.arc(C + rx, C + ry, 4.4, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "#c96a55";
+      ctx.fillStyle = (p.estado && COLOR_ESTADO[p.estado]) || "#c96a55";
       ctx.beginPath();
-      ctx.arc(C + rx, C + ry, 2.8, 0, Math.PI * 2);
+      ctx.arc(C + rx, C + ry, 3, 0, Math.PI * 2);
       ctx.fill();
+      // los alterados laten para que se noten
+      if (p.estado === "caza" || p.estado === "busca") {
+        ctx.strokeStyle = ctx.fillStyle;
+        ctx.lineWidth = 1.2;
+        ctx.globalAlpha = 0.5 + 0.5 * Math.sin(performance.now() / 130);
+        ctx.beginPath();
+        ctx.arc(C + rx, C + ry, 7, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
     }
 
     // marcador fijo en el centro, mirando arriba

@@ -168,7 +168,19 @@ propio hermano «el Director»). Flags: `mario_motes`, `mario_tomo_curso`, `kevi
   la linterna encendida te delata de lejos. Persecución con música tensa; si te atrapan,
   te sueltan en la entrada del ala («A la próxima, correas»).
 - **Escondites**: armarios y huecos bajo mesas. Regla sagrada: si te VEN esconderte,
-  no vale — van a por ti al armario.
+  no vale — van a por ti al armario. Dentro puedes **asomarte** girando la vista dentro
+  de un margen (más estrecho en armario que bajo una mesa).
+- **Alerta estilo Metal Gear** sobre la cabeza del celador: **?** amarillo tenue (le ha
+  extrañado algo y se para a mirar), **!** amarillo (va a investigar el punto) y **!** rojo
+  con rayitas (te ha visto y te persigue).
+- **Cascotes** (almacén): se lanzan con **[G]**, vuelan en parábola y al caer marcan el
+  punto con un halo; los celadores cercanos acuden a mirar y luego vuelven a su ronda.
+- **Espectrómetro de ruido** en el HUD con marca de umbral: quieto 0, agachado por debajo
+  del umbral, andando lo supera, corriendo lo dispara. Avisa con «TE OYEN» si hay alguien
+  dentro de tu radio de ruido.
+- Los celadores **navegan por el mapa** (búsqueda por celdas), así que rodean paredes en
+  vez de clavarse en las esquinas, y se despegan solos si se atascan.
+- El minimapa muestra a los celadores con el color de su estado y **sus rondas punteadas**.
 - **Robo de bolsillos**: solo por la espalda y con el celador distraído en su rutina.
   GUZMÁN lleva la TARJETA ROJA de la azotea (fuma en la sala de máquinas — lo delata el
   tablón). Botines absurdos del resto: fotos dedicadas de Nikuman (PINTO), CD «JUEGOS»

@@ -1,5 +1,8 @@
 const $ = (id: string) => document.getElementById(id)!;
 
+/** Por encima de esta marca del medidor, un celador cercano puede oírte. */
+const UMBRAL = 0.32;
+
 let notifyTimer: number | undefined;
 let objTimer: number | undefined;
 let clockH = 3;
@@ -51,6 +54,22 @@ export const hud = {
   },
   torch(on: boolean) {
     $("hud-torch").classList.toggle("hidden", !on);
+  },
+  /** Espectrómetro de ruido: nivel 0..1 y si te están oyendo. */
+  noise(nivel: number, oido: boolean) {
+    const wrap = $("hud-noise");
+    if (wrap.classList.contains("hidden")) wrap.classList.remove("hidden");
+    const n = Math.max(0, Math.min(1, nivel));
+    const barras = document.querySelectorAll("#noise-bars i");
+    barras.forEach((b, i) => {
+      const activo = n > (i + 0.5) / barras.length;
+      b.classList.toggle("on", activo);
+      b.classList.toggle("over", activo && (i + 0.5) / barras.length >= UMBRAL);
+    });
+    wrap.classList.toggle("alert", oido);
+  },
+  hideNoise() {
+    $("hud-noise").classList.add("hidden");
   },
   setLocation(t: string) {
     $("clock-loc").textContent = t;
