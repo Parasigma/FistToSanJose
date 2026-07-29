@@ -164,7 +164,7 @@ propio hermano «el Director»). Flags: `mario_motes`, `mario_tomo_curso`, `kevi
 ## Episodio 3 — ALA C (implementado)
 
 - **Sigilo estilo Outlast**: celadores con rutinas memorizables (GUZMÁN, PINTO, SOSA,
-  MOLINA), visión por cono + línea de vista + oído. Agacharse (CTRL) silencia los pasos;
+  MOLINA), visión por cono + línea de vista + oído. Agacharse ([C]) silencia los pasos;
   la linterna encendida te delata de lejos. Persecución con música tensa; si te atrapan,
   te sueltan en la entrada del ala («A la próxima, correas»).
 - **Escondites**: armarios y huecos bajo mesas. Regla sagrada: si te VEN esconderte,

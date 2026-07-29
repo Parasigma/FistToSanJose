@@ -25,7 +25,7 @@ export class Player {
   /** Fija la altura de la cámara (se suelta en cinemáticas como la tele). */
   lockY = true;
   flashOn = false;
-  /** Agachado (CTRL): más lento, más silencioso, cámara baja. */
+  /** Agachado ([C]): más lento, más silencioso, cámara baja. */
   crouched = false;
   sprinting = false;
   onStep: (() => void) | null = null;
@@ -88,14 +88,17 @@ export class Player {
         cam.speed = this.baseSpeed * 1.75;
         this.sprinting = true;
       }
-      if (e.code === "ControlLeft" || e.code === "ControlRight") this.crouched = true;
+      // Agacharse va en [C], NO en CTRL: mantener CTRL y pulsar W es Ctrl+W,
+      // atajo reservado del navegador que CIERRA la pestaña y no se puede
+      // cancelar desde la página. Con CTRL se perdía la partida en marcha.
+      if (e.code === "KeyC") this.crouched = true;
     });
     document.addEventListener("keyup", (e) => {
       if (e.code === "ShiftLeft") {
         cam.speed = this.baseSpeed;
         this.sprinting = false;
       }
-      if (e.code === "ControlLeft" || e.code === "ControlRight") this.crouched = false;
+      if (e.code === "KeyC") this.crouched = false;
     });
     window.addEventListener("blur", () => {
       this.crouched = false;
