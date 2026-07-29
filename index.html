@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FIRST TO SAN JOSE</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="ui">
+    <div id="scanlines"></div>
+    <div id="grain"></div>
+
+    <div id="hud" class="hidden">
+      <div id="crosshair">
+        <i class="ch tl"></i><i class="ch tr"></i><i class="ch bl"></i><i class="ch br"></i>
+        <i id="ch-dot"></i>
+      </div>
+      <div id="objective" class="hidden">
+        <div id="obj-tag"><i id="obj-dot"></i>OBJETIVO</div>
+        <div id="obj-text"></div>
+      </div>
+      <div id="hud-clock">
+        <div id="clock-time"><span id="clock-h">3</span><span id="clock-colon">:</span><span id="clock-m">47</span> <span id="clock-ampm">AM</span></div>
+        <div id="clock-loc">PLANTA 2 · ALA B</div>
+      </div>
+      <div id="mini-wrap" class="hidden">
+        <canvas id="minimap"></canvas>
+        <div id="mini-label">PLANO DE EVACUACIÓN</div>
+      </div>
+      <div id="hud-torch" class="hidden">
+        <img id="torch-ico" alt="linterna" width="30" height="30" />
+        <div id="torch-segs"><i class="seg"></i><i class="seg"></i><i class="seg"></i><i class="seg"></i><i class="seg"></i></div>
+        <div id="torch-label">LINTERNA</div>
+      </div>
+      <div id="prompt"></div>
+      <div id="notify"></div>
+    </div>
+
+    <div id="dialogue" class="hidden">
+      <div id="d-speaker"></div>
+      <div id="d-text"></div>
+      <div id="d-options"></div>
+      <div id="d-hint">[E] continuar</div>
+    </div>
+
+    <div id="inventory" class="hidden">
+      <div class="panel" id="inv-panel">
+        <i class="crn tl"></i><i class="crn tr"></i><i class="crn bl"></i><i class="crn br"></i>
+        <div id="inv-head">
+          <h2>INVENTARIO</h2>
+          <span id="inv-sub">PACIENTE Nº 0034</span>
+          <span id="inv-count">0 / 8</span>
+        </div>
+        <div id="inv-grid"></div>
+        <div id="inv-detail">
+          <div id="inv-name">—</div>
+          <div id="inv-desc"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tv-ui" class="hidden">
+      <div id="tv-panel">
+        <div id="tv-scale">
+          <div id="tv-ticks"></div>
+          <div id="tv-needle"></div>
+        </div>
+      </div>
+    </div>
+
+    <canvas id="ui3d"></canvas>
+
+    <div id="examine" class="hidden">
+      <div id="ex-name"></div>
+      <div id="ex-desc"></div>
+    </div>
+
+    <div id="journal" class="hidden">
+      <div class="panel" id="journal-panel">
+        <i class="crn tl"></i><i class="crn tr"></i><i class="crn bl"></i><i class="crn br"></i>
+        <div id="jr-head">
+          <h2>DIARIO DEL PACIENTE</h2>
+          <span id="jr-sub">Nº 0034 · NOCHE DEL DÍA 217</span>
+        </div>
+        <div id="jr-obj-tag">OBJETIVO ACTUAL</div>
+        <div id="jr-obj"></div>
+        <div id="jr-list"></div>
+        <div id="jr-foot"><span>REGISTRO DE LA NOCHE</span></div>
+      </div>
+    </div>
+
+    <div id="keypad" class="hidden">
+      <div class="panel">
+        <i class="crn tl"></i><i class="crn tr"></i><i class="crn bl"></i><i class="crn br"></i>
+        <h2>TECLADO NUMÉRICO</h2>
+        <div id="kp-display">____</div>
+        <div id="kp-msg"></div>
+      </div>
+    </div>
+
+    <div id="paused" class="hidden">
+      <div class="panel" id="pause-panel">
+        <i class="crn tl"></i><i class="crn tr"></i><i class="crn bl"></i><i class="crn br"></i>
+        <div id="pause-main">
+          <div class="p-over">SANATORIO SAN JOSÉ</div>
+          <div id="pause-title">PAUSA</div>
+          <div class="p-sub">PACIENTE Nº 0034 · MATAS ADE, MARIO</div>
+          <div id="pause-cols">
+            <div id="pause-items">
+              <button class="pause-item" id="btn-resume"><span class="arrow">▸</span>REANUDAR<span class="hint">CLIC / ESC</span></button>
+              <button class="pause-item" id="btn-options"><span class="arrow">▸</span>OPCIONES<span class="hint"></span></button>
+            </div>
+            <div id="pause-keys">
+              <div class="pk-title">CONTROLES</div>
+              <div class="pk-wasd">
+                <div class="pk-wasd-top"><span class="key-cap">W</span></div>
+                <div><span class="key-cap">A</span><span class="key-cap">S</span><span class="key-cap">D</span></div>
+                <div class="pk-lbl pk-lbl-c">MOVERSE</div>
+              </div>
+              <div class="pk-row"><span class="key-cap wide">SHIFT</span><span class="pk-lbl">CORRER</span></div>
+              <div class="pk-row"><span class="key-cap wide">CTRL</span><span class="pk-lbl">AGACHARSE</span></div>
+              <div class="pk-row"><span class="key-cap wide">RATÓN</span><span class="pk-lbl">MIRAR · DIALES</span></div>
+              <div class="pk-row"><span class="key-cap">E</span><span class="pk-lbl">INTERACTUAR</span></div>
+              <div class="pk-row"><span class="key-cap">Q</span><span class="pk-lbl">LINTERNA</span></div>
+              <div class="pk-row"><span class="key-cap wide">TAB</span><span class="pk-lbl">INVENTARIO</span></div>
+              <div class="pk-row"><span class="key-cap">Y</span><span class="pk-lbl">DIARIO</span></div>
+              <div class="pk-row"><span class="key-cap">1</span><span class="key-cap">2</span><span class="key-cap">3</span><span class="pk-lbl">RESPUESTAS</span></div>
+              <div class="pk-row"><span class="key-cap wide">ESC</span><span class="pk-lbl">PAUSA</span></div>
+            </div>
+          </div>
+        </div>
+        <div id="pause-options" class="hidden">
+          <div class="p-over">OPCIONES</div>
+          <div class="p-sub">CONFIGURACIÓN</div>
+          <div id="opts-rows">
+            <div class="opt-row">
+              <span class="opt-lbl">VOLUMEN</span>
+              <input type="range" id="opt-vol" min="0" max="100" value="80" />
+              <span class="opt-val" id="opt-vol-val">80</span>
+            </div>
+            <div class="opt-row">
+              <span class="opt-lbl">SENSIBILIDAD</span>
+              <input type="range" id="opt-sens" min="0" max="100" value="50" />
+              <span class="opt-val" id="opt-sens-val">50</span>
+            </div>
+            <button class="opt-toggle" id="opt-crt"><span class="opt-lbl">FILTRO CRT</span><span class="tv on">■ SÍ</span><span class="tv off">□ NO</span></button>
+            <button class="opt-toggle" id="opt-grain"><span class="opt-lbl">GRANO DE CINTA</span><span class="tv on">■ SÍ</span><span class="tv off">□ NO</span></button>
+          </div>
+          <button id="btn-opts-back">← VOLVER</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="hide-ui" class="hidden">
+      <div class="hide-slit"></div>
+    </div>
+
+    <div id="start-hint" class="hidden">HAZ CLIC PARA CONTINUAR</div>
+
+    <div id="intro" class="hidden"></div>
+
+    <div id="ending" class="hidden">
+      <div class="center-text">
+        <div id="ending-text"></div>
+        <button id="btn-ending-menu" class="menu-btn">VOLVER AL MENÚ</button>
+      </div>
+    </div>
+
+    <div id="menu">
+      <div id="menu-inner">
+        <div id="title-small">UN RELATO DE TERROR</div>
+        <h1 id="title">FIRST TO<br />SAN JOSE</h1>
+        <div id="episode">EPISODIO 1 · SANATORIO SAN JOSÉ</div>
+        <div id="menu-buttons">
+          <button id="btn-new" class="menu-btn">NUEVA PARTIDA</button>
+          <button id="btn-continue" class="menu-btn" disabled>CONTINUAR</button>
+        </div>
+        <div id="menu-warning">Basado en hechos que nadie recuerda.</div>
+      </div>
+    </div>
+
+    <div id="fade"></div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
