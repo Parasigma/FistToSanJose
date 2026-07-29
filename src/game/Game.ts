@@ -110,6 +110,7 @@ export class Game {
     });
     window.addEventListener("resize", () => this.engine.resize());
     this.wireInput();
+    this.wireAutoSave();
 
     if (!save) {
       await this.intro();
@@ -502,6 +503,41 @@ export class Game {
       y: c.position.y,
       z: c.position.z,
       ry: c.rotation.y,
+    });
+  }
+
+  /** Autoguardado: silencioso, con un sello discreto en el HUD. */
+  autoSave(motivo = "") {
+    if (!this.playing || this.ended) return;
+    this.savePlayer();
+    hud.autoSaved(motivo);
+  }
+
+  /** Autoguardado periódico + al progresar (lo arranca start()). */
+  private wireAutoSave() {
+    let ultimo = performance.now();
+    let flagsPrev = Object.keys(this.state.flags).length;
+    let itemsPrev = this.state.items.length;
+    this.onUpdate.push(() => {
+      if (!this.playing || this.ended || this.modal || this.uiBlocked()) return;
+      const ahora = performance.now();
+      const flags = Object.keys(this.state.flags).length;
+      const items = this.state.items.length;
+      // al avanzar de verdad (nueva pista u objeto), sin esperar al reloj
+      const progreso = flags !== flagsPrev || items !== itemsPrev;
+      if (progreso && ahora - ultimo > 4000) {
+        flagsPrev = flags;
+        itemsPrev = items;
+        ultimo = ahora;
+        this.autoSave();
+        return;
+      }
+      flagsPrev = flags;
+      itemsPrev = items;
+      if (ahora - ultimo > 90000) {
+        ultimo = ahora;
+        this.autoSave();
+      }
     });
   }
 }

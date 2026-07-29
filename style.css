@@ -807,6 +807,125 @@ body {
   display: none;
 }
 
+/* ---- sello de autoguardado ---- */
+#autosave {
+  position: absolute;
+  top: 92px;
+  right: 26px;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--dim);
+  text-shadow: 1px 1px 0 #000;
+  opacity: 0;
+  text-align: right;
+}
+
+#autosave.show {
+  animation: autosaveFade 3.4s ease forwards;
+}
+
+@keyframes autosaveFade {
+  0% { opacity: 0; }
+  12% { opacity: 0.95; }
+  70% { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+
+/* si el minimapa está visible, el sello se aparta debajo */
+#mini-wrap:not(.hidden) ~ #autosave {
+  top: 268px;
+}
+
+/* ---- minijuego del candado ---- */
+#lock-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 5vh;
+}
+
+#lock-panel {
+  position: relative;
+  background: rgba(4, 4, 6, 0.82);
+  border: 1px solid var(--line);
+  padding: 14px 26px 12px;
+  text-align: center;
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.7);
+}
+
+#lock-title {
+  font-size: 10px;
+  letter-spacing: 5px;
+  color: var(--dim);
+  margin-bottom: 10px;
+}
+
+#lock-dial {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  margin: 0 auto;
+  border: 1px solid #3a3a42;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.045) 0%, rgba(0, 0, 0, 0.5) 70%);
+}
+
+#lock-needle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 38px;
+  background: linear-gradient(to top, rgba(255, 217, 138, 0.15), var(--ac));
+  transform-origin: 50% 100%;
+  transform: translate(-50%, -100%) rotate(90deg);
+}
+
+#lock-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: #6e7376;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+}
+
+#lock-heat {
+  width: 150px;
+  height: 5px;
+  margin: 12px auto 0;
+  border: 1px solid #33333c;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+#lock-heat-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: #8a5a4a;
+  transition: width 0.06s linear;
+}
+
+#lock-hint {
+  margin-top: 10px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--mut);
+}
+
+#lock-hint span {
+  display: block;
+  margin-top: 3px;
+  color: var(--dim);
+}
+
 /* ---- escondido (armario / bajo la mesa) ---- */
 #hide-ui {
   position: absolute;

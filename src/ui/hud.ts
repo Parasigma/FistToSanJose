@@ -75,6 +75,14 @@ export const hud = {
   saveStamp(t: string) {
     $("save-stamp").textContent = t;
   },
+  /** Sello discreto de autoguardado (arriba a la derecha, se desvanece). */
+  autoSaved(motivo = "") {
+    const el = $("autosave");
+    el.textContent = motivo ? `GUARDADO · ${motivo}` : "GUARDADO";
+    el.classList.remove("show");
+    void el.offsetWidth;
+    el.classList.add("show");
+  },
   prompt(t: string | null) {
     const el = $("prompt");
     if (!t) {

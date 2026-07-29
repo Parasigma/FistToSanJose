@@ -848,6 +848,7 @@ export function buildLevel3(game: Game) {
   let lockStart = 0;
   let lockAngle = 0;
   let lockSweet = 1;
+  let lockReady = 0;
   let lockAcc = 0;
   const lockSaved = { pos: new Vector3(), rx: 0, ry: 0 };
   const lockFrom = new Vector3();
@@ -877,7 +878,12 @@ export function buildLevel3(game: Game) {
     lockFromRy = cam.rotation.y;
     lockStart = performance.now();
     lockSweet = Math.random() * Math.PI * 2;
+    lockVx = 60;
+    lockVy = 0;
+    lockAngle = 0;
     destTip.setEnabled(true);
+    document.getElementById("lock-ui")!.classList.remove("hidden");
+    hud.hide();
     game.sfx.switchClick();
   };
   const exitLock = () => {
@@ -891,13 +897,32 @@ export function buildLevel3(game: Game) {
     game.tryLock();
   };
 
+  // El ángulo se lleva con un punto virtual, así funciona TANTO con el ratón
+  // libre como con el puntero capturado (donde clientX/clientY no se mueven).
+  let lockVx = 60;
+  let lockVy = 0;
   window.addEventListener("mousemove", (e) => {
     if (lockMode !== 2) return;
-    lockAngle = Math.atan2(e.clientY - window.innerHeight / 2, e.clientX - window.innerWidth / 2);
+    if (document.pointerLockElement) {
+      lockVx += e.movementX || 0;
+      lockVy += e.movementY || 0;
+    } else {
+      lockVx = e.clientX - window.innerWidth / 2;
+      lockVy = e.clientY - window.innerHeight / 2;
+    }
+    const r = Math.hypot(lockVx, lockVy);
+    if (r > 260) {
+      lockVx = (lockVx / r) * 260;
+      lockVy = (lockVy / r) * 260;
+    } else if (r < 12) {
+      lockVx = 12;
+      lockVy = 0;
+    }
+    lockAngle = Math.atan2(lockVy, lockVx);
   });
-  window.addEventListener("mousedown", () => {
+  const intentarAbrir = () => {
     if (lockMode !== 2) return;
-    if (angDist(lockAngle, lockSweet) < 0.13) {
+    if (angDist(lockAngle, lockSweet) < 0.2) {
       game.sfx.lockClack();
       game.sfx.unlock();
       state.set("exp_niku_abierto");
@@ -912,9 +937,19 @@ export function buildLevel3(game: Game) {
     } else {
       game.sfx.locked();
     }
+  };
+  window.addEventListener("mousedown", (e) => {
+    if (lockMode !== 2) return;
+    if (e.button === 2) exitLock(); // clic derecho: dejarlo
+    else intentarAbrir();
   });
   document.addEventListener("keydown", (e) => {
-    if (lockMode === 2 && (e.code === "KeyE" || e.code === "Escape" || e.code === "Enter")) exitLock();
+    if (lockMode !== 2 || e.repeat) return;
+    // margen de gracia: el autorrepetido de la [E] con la que entras ya no
+    // puede cerrar el minijuego nada más abrirse
+    if (performance.now() - lockReady < 450) return;
+    if (e.code === "Enter" || e.code === "Space") intentarAbrir();
+    else if (e.code === "Escape" || e.code === "KeyE") exitLock();
   });
 
   game.onUpdate.push((dt) => {
@@ -930,13 +965,17 @@ export function buildLevel3(game: Game) {
       cam.rotation.x = lockFromRx + (drx - lockFromRx) * e;
       cam.rotation.y = lockFromRy + Math.atan2(Math.sin(dry - lockFromRy), Math.cos(dry - lockFromRy)) * e;
       if (p >= 1) {
-        if (lockMode === 1) lockMode = 2;
-        else {
+        if (lockMode === 1) {
+          lockMode = 2;
+          lockReady = performance.now();
+        } else {
           lockMode = 0;
+          document.getElementById("lock-ui")!.classList.add("hidden");
           game.modal = false;
           game.player.lockY = true;
           game.player.setFlashlightHidden(!state.has("linterna"));
           game.player.setControl(true);
+          hud.show();
           game.checkPause();
         }
       }
@@ -951,6 +990,15 @@ export function buildLevel3(game: Game) {
       if (lockAcc > 1) {
         lockAcc = 0;
         game.sfx.lockTick(prox);
+      }
+      // guía en pantalla: aguja + "calor" (si no, el puzle es adivinar a ciegas)
+      const needle = document.getElementById("lock-needle");
+      if (needle) needle.style.transform = `translate(-50%, -100%) rotate(${(lockAngle * 180) / Math.PI + 90}deg)`;
+      const fill = document.getElementById("lock-heat-fill");
+      if (fill) {
+        const calor = Math.max(0, 1 - cerca / 0.9);
+        fill.style.width = (calor * 100).toFixed(1) + "%";
+        fill.style.background = cerca < 0.2 ? "#9fe89f" : cerca < 0.5 ? "#ffd98a" : "#8a5a4a";
       }
     }
   });

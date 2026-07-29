@@ -43,7 +43,9 @@ git add -A && git commit -m "lo que sea" && git push
 | SHIFT | Correr |
 | ESC | Soltar el ratón (pausa) |
 
-**Guardar partida:** interactúa con el diario rojo del escritorio de tu habitación (104).
+**Guardar partida:** el juego **autoguarda** en todas las plantas (al avanzar, al cambiar
+de planta y cada minuto y medio); aparece un discreto «GUARDADO» arriba a la derecha.
+También puedes guardar a mano en el diario rojo de tu habitación (104).
 
 ## Estructura del código
 
