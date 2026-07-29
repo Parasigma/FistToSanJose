@@ -913,8 +913,33 @@ body {
   transition: width 0.06s linear;
 }
 
+#lock-now {
+  height: 12px;
+  margin-top: 8px;
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: #9fe89f;
+  text-shadow: 0 0 8px rgba(159, 232, 159, 0.6);
+  opacity: 0;
+}
+
+#lock-panel.hot #lock-now {
+  opacity: 1;
+  animation: nowPulse 0.5s ease-in-out infinite;
+}
+
+#lock-panel.hot {
+  border-color: #4d7a4d;
+  box-shadow: 0 0 26px rgba(0, 0, 0, 0.7), inset 0 0 22px rgba(159, 232, 159, 0.09);
+}
+
+@keyframes nowPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
 #lock-hint {
-  margin-top: 10px;
+  margin-top: 8px;
   font-size: 10px;
   letter-spacing: 2px;
   color: var(--mut);

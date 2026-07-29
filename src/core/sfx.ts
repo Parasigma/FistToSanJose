@@ -255,10 +255,13 @@ export class Sfx {
     this.noiseBurst(0.12, 1400, 1.5, 0.1, "bandpass");
   }
 
-  /** Tic del candado al hurgar: más fuerte y agudo cuanto más cerca. */
+  /**
+   * Tic del candado al hurgar. El rango es MUY amplio a propósito: si el tono
+   * apenas cambia cerca del punto, el jugador no puede distinguirlo de oído.
+   */
   lockTick(p: number) {
-    this.tone(480 + p * 980, 0.03, 0.018 + p * 0.1, "square");
-    if (p > 0.9) this.noiseBurst(0.03, 2400, 3, 0.08, "highpass");
+    this.tone(240 + p * p * 1760, 0.035, 0.012 + p * p * 0.16, "square");
+    if (p > 0.72) this.noiseBurst(0.03, 2600, 3, 0.05 + p * 0.09, "highpass");
   }
 
   /** El CLICK bueno del candado. */

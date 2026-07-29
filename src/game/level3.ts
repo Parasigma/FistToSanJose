@@ -920,9 +920,22 @@ export function buildLevel3(game: Game) {
     }
     lockAngle = Math.atan2(lockVy, lockVx);
   });
+  // sonda de diagnóstico del candado (útil si vuelve a fallar en producción)
+  (window as unknown as { __lock: () => unknown }).__lock = () => ({
+    lockMode,
+    lockAngle,
+    lockSweet,
+    dist: angDist(lockAngle, lockSweet),
+    tolerancia: 0.2,
+    pointerLocked: !!document.pointerLockElement,
+    vx: lockVx,
+    vy: lockVy,
+  });
+
+  const TOL = 0.38; // ~22°: exige buscar, pero no adivinar al grado
   const intentarAbrir = () => {
     if (lockMode !== 2) return;
-    if (angDist(lockAngle, lockSweet) < 0.2) {
+    if (angDist(lockAngle, lockSweet) < TOL) {
       game.sfx.lockClack();
       game.sfx.unlock();
       state.set("exp_niku_abierto");
@@ -936,6 +949,8 @@ export function buildLevel3(game: Game) {
       exitLock();
     } else {
       game.sfx.locked();
+      const d = angDist(lockAngle, lockSweet);
+      game.notify(d < 0.75 ? "Casi. El pestillo ha llegado a moverse." : "Nada. Ahí no hay nada que empujar.", 1800);
     }
   };
   window.addEventListener("mousedown", (e) => {
@@ -985,21 +1000,30 @@ export function buildLevel3(game: Game) {
       const cerca = angDist(lockAngle, lockSweet);
       const jit = cerca < 0.25 ? (Math.random() - 0.5) * 0.006 : 0;
       destTip.position.set(48 + Math.cos(lockAngle) * 0.045 + jit, 0.62 + Math.sin(lockAngle) * 0.045 + jit, 134.25);
-      const prox = 1 - Math.min(1, cerca / Math.PI);
-      lockAcc += dt * (1.5 + prox * 12);
+      // curva estrecha: solo "quema" de verdad al lado del punto bueno
+      const prox = Math.max(0, 1 - cerca / 1.1);
+      lockAcc += dt * (2 + prox * prox * 22);
       if (lockAcc > 1) {
         lockAcc = 0;
         game.sfx.lockTick(prox);
       }
       // guía en pantalla: aguja + "calor" (si no, el puzle es adivinar a ciegas)
+      const dentro = cerca < TOL;
       const needle = document.getElementById("lock-needle");
-      if (needle) needle.style.transform = `translate(-50%, -100%) rotate(${(lockAngle * 180) / Math.PI + 90}deg)`;
+      if (needle) {
+        needle.style.transform = `translate(-50%, -100%) rotate(${(lockAngle * 180) / Math.PI + 90}deg)`;
+        needle.style.background = dentro
+          ? "linear-gradient(to top, rgba(159,232,159,0.2), #9fe89f)"
+          : "linear-gradient(to top, rgba(255,217,138,0.15), #ffd98a)";
+      }
       const fill = document.getElementById("lock-heat-fill");
       if (fill) {
-        const calor = Math.max(0, 1 - cerca / 0.9);
+        const calor = Math.max(0, 1 - cerca / 1.1);
         fill.style.width = (calor * 100).toFixed(1) + "%";
-        fill.style.background = cerca < 0.2 ? "#9fe89f" : cerca < 0.5 ? "#ffd98a" : "#8a5a4a";
+        fill.style.background = dentro ? "#9fe89f" : cerca < 0.7 ? "#ffd98a" : "#8a5a4a";
       }
+      const panel = document.getElementById("lock-panel");
+      if (panel) panel.classList.toggle("hot", dentro);
     }
   });
 
