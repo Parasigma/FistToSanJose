@@ -122,19 +122,23 @@ export const minimap = {
     ctx.fillStyle = "rgba(6,6,8,0.62)";
     ctx.fillRect(0, 0, SIZE, SIZE);
 
-    // el plano gira: la dirección de la marcha apunta hacia arriba
+    // El plano gira con el jugador: lo que tiene delante va arriba y lo que
+    // tiene a su derecha, a la derecha. El plano se guarda con +Z hacia abajo,
+    // así que la transformación incluye el volteo vertical (determinante -1);
+    // sin él, el mapa salía reflejado y la derecha aparecía a la izquierda.
     const px = (x / 2) * OFF_SCALE;
     const py = ((z - def.zOff) / 2) * OFF_SCALE;
-    ctx.translate(C, C);
-    ctx.rotate(yaw + Math.PI);
+    const cy = Math.cos(yaw);
+    const sy = Math.sin(yaw);
+    ctx.setTransform(cy, -sy, -sy, -cy, C, C);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(def.off, -px, -py);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.restore();
 
-    // PNJs: puntos que giran con el plano (pegados al borde si quedan lejos)
-    const th0 = yaw + Math.PI;
-    const cosT = Math.cos(th0);
-    const sinT = Math.sin(th0);
+    // PNJs: mismos ejes que el plano (delante arriba, derecha a la derecha)
+    const cosT = Math.cos(yaw);
+    const sinT = Math.sin(yaw);
     for (const n of npcs) {
       if (n.nivel !== nivel) continue;
       const p = n.get();
@@ -142,7 +146,7 @@ export const minimap = {
       const mx = (p.x - x) * (OFF_SCALE / 2);
       const my = (p.z - z) * (OFF_SCALE / 2);
       const rx = mx * cosT - my * sinT;
-      const ry = mx * sinT + my * cosT;
+      const ry = -mx * sinT - my * cosT;
       // fuera del radio visible: el punto no se dibuja (nada de agolparse en el borde)
       if (Math.hypot(rx, ry) > R - 6) continue;
       ctx.fillStyle = "#0a0a0c";
@@ -181,9 +185,9 @@ export const minimap = {
     ctx.beginPath();
     ctx.arc(C, C, R, 0, Math.PI * 2);
     ctx.stroke();
-    const th = yaw + Math.PI;
-    const nx = C + Math.sin(th) * (R - 9);
-    const ny = C - Math.cos(th) * (R - 9);
+    // el norte del mundo (+Z) con la misma transformación que el plano
+    const nx = C - Math.sin(yaw) * (R - 9);
+    const ny = C - Math.cos(yaw) * (R - 9);
     ctx.fillStyle = "#cfc9b8";
     ctx.font = "bold 10px 'Courier New'";
     ctx.textAlign = "center";

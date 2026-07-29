@@ -61,8 +61,14 @@ const lerpAngle = (a: number, b: number, k: number) => {
 interface Ruta {
   x: number;
   z: number;
+  /** Segundos parado en el punto. */
   w?: number;
+  /** Qué está haciendo (si hay texto, se le puede robar el bolsillo). */
   a?: string;
+  /** Postura durante la parada. */
+  pose?: "sentado" | "fuma";
+  /** Hacia dónde mira mientras está parado. */
+  mira?: number;
 }
 
 interface Celador {
@@ -409,8 +415,9 @@ export function buildLevel4(game: Game) {
 
   // sala de celadores
   mkMesaHueco(46, 185.5);
-  box("sillasCel1", 0.5, 0.95, 0.5, 44.5, 0.48, 184.3, matWood);
+  box("sillasCel1", 0.5, 0.95, 0.5, 44.5, 0.48, 184.4, matWood); // la silla de GUZMÁN
   box("sillasCel2", 0.5, 0.95, 0.5, 47.5, 0.48, 186.8, matWood);
+  box("sillaComedor", 0.5, 0.9, 0.5, 16, 0.45, 202.4, matWood); // donde se sienta SOSA
   mkArmario(35, 183.2, Math.PI); // taquilla de la sala
   const tablon = box("tablon4", 1.8, 1.1, 0.06, 41, 1.75, 182.12, matWood, { collide: false });
   game.register(tablon, "tablon4", "Leer el tablón de celadores", () => {
@@ -575,18 +582,14 @@ export function buildLevel4(game: Game) {
       shirt: "#3d4a55",
       loot: { id: "tarjeta_roja", name: "Tarjeta roja — AZOTEA", desc: "«ACCESO AZOTEA — G.» Grasienta, doblada y calentita del bolsillo. Abre la única puerta que mira al cielo." },
       lootFlag: "rob_guzman",
+      // ronda corta por el este: su silla y su escapada a fumar
       ruta: [
-        { x: 46, z: 183.5, w: 8, a: "hojea el parte" },
+        { x: 44.5, z: 184.4, w: 22, a: "repasa el parte sentado", pose: "sentado", mira: Math.PI },
         { x: 45, z: 189 },
         { x: 45, z: 192 },
         { x: 56, z: 192 },
-        { x: 56, z: 218 },
-        { x: 27, z: 218 },
-        { x: 27, z: 222 },
-        { x: 28.6, z: 226.6, w: 11, a: "fuma junto a la caldera" },
-        { x: 27, z: 222 },
-        { x: 27, z: 218 },
-        { x: 56, z: 218 },
+        { x: 56, z: 214 },
+        { x: 56, z: 216, w: 26, a: "fuma apoyado en la pared", pose: "fuma", mira: Math.PI / 2 },
         { x: 56, z: 192 },
         { x: 45, z: 192 },
         { x: 45, z: 189 },
@@ -597,14 +600,12 @@ export function buildLevel4(game: Game) {
       shirt: "#46525c",
       loot: { id: "fotos_nikuman", name: "Fotos dedicadas de Nikuman", desc: "«Para mi fan número 1 — Nikux». Nadie se las pidió. Hay siete. Todas iguales." },
       lootFlag: "rob_pinto",
+      // pasillo sur, tranquilo y muy despacio
       ruta: [
-        { x: 56, z: 192, w: 3, a: "bosteza con violencia" },
-        { x: 56, z: 218 },
-        { x: 30, z: 218, w: 3, a: "comprueba una puerta ya comprobada" },
-        { x: 4, z: 218 },
-        { x: 4, z: 205 },
-        { x: 4, z: 192, w: 3, a: "mira por una ventana que no existe" },
-        { x: 30, z: 192 },
+        { x: 12, z: 218, w: 20, a: "bosteza apoyado en la pared", pose: "fuma", mira: -Math.PI / 2 },
+        { x: 24, z: 218 },
+        { x: 36, z: 218, w: 18, a: "comprueba una puerta ya comprobada", mira: 0 },
+        { x: 24, z: 218 },
       ],
     },
     {
@@ -612,15 +613,12 @@ export function buildLevel4(game: Game) {
       shirt: "#3a4550",
       loot: { id: "cd_juegos", name: "CD quemado: «JUEGOS»", desc: "Escrito a rotulador. Debajo, más pequeño: «no son virus, confía». Confiscado a saber a quién." },
       lootFlag: "rob_sosa",
+      // comedor: entra, se sienta un buen rato y sale
       ruta: [
-        { x: 17, z: 192 },
-        { x: 17, z: 198 },
-        { x: 12.5, z: 203.4, w: 9, a: "recuenta los cubiertos" },
-        { x: 17, z: 198 },
-        { x: 17, z: 192 },
-        { x: 5, z: 192 },
-        { x: 5, z: 185, w: 5, a: "husmea en la celda C-01" },
-        { x: 5, z: 191 },
+        { x: 16, z: 202.4, w: 24, a: "recuenta los cubiertos sentado", pose: "sentado", mira: -Math.PI / 2 },
+        { x: 17, z: 197 },
+        { x: 17, z: 192, w: 14, a: "mira el pasillo sin verlo", mira: -Math.PI / 2 },
+        { x: 17, z: 197 },
       ],
     },
     {
@@ -628,20 +626,12 @@ export function buildLevel4(game: Game) {
       shirt: "#414b44",
       loot: { id: "calzones_paquito", name: "Calzoncillos de Paquito (usados)", desc: "Talla BESTIA. Confiscados «por seguridad estructural». Nadie los ha reclamado. Nadie lo hará." },
       lootFlag: "rob_molina",
+      // dormitorio: no sale de su sala
       ruta: [
-        { x: 41, z: 192 },
-        { x: 41, z: 198 },
-        { x: 44.6, z: 204.4, w: 7, a: "estira sábanas que nadie usa" },
-        { x: 35, z: 210 },
-        { x: 35, z: 218 },
-        { x: 9, z: 218 },
-        { x: 9, z: 224 },
-        { x: 5.5, z: 227, w: 9, a: "hace inventario de nada" },
-        { x: 9, z: 224 },
-        { x: 9, z: 218 },
-        { x: 35, z: 218 },
-        { x: 35, z: 210 },
-        { x: 41, z: 198 },
+        { x: 42, z: 211, w: 22, a: "estira sábanas que nadie usa", mira: 0 },
+        { x: 42, z: 203 },
+        { x: 34, z: 201, w: 20, a: "se sienta en una cama a no hacer nada", pose: "sentado", mira: Math.PI / 2 },
+        { x: 42, z: 203 },
       ],
     },
   ];
@@ -720,6 +710,22 @@ export function buildLevel4(game: Game) {
   });
   minimap.registerRoutes(4, defs.map((d) => d.ruta.map((w) => ({ x: w.x, z: w.z }))));
 
+  // sonda de diagnóstico de las rondas (estado, punto y postura de cada uno)
+  (window as unknown as { __cel: () => unknown }).__cel = () =>
+    celadores.map((g) => ({
+      nombre: g.nombre,
+      estado: g.estado,
+      idx: g.idx,
+      accion: g.patrulla[g.idx]?.a ?? "-",
+      pose: g.patrulla[g.idx]?.pose ?? "-",
+      y: +g.npc.root.position.y.toFixed(2),
+      espera: Math.max(0, Math.round((g.esperaHasta - performance.now()) / 1000)),
+      distWp: +Math.hypot(
+        (g.patrulla[g.idx]?.x ?? 0) - g.col.position.x,
+        (g.patrulla[g.idx]?.z ?? 0) - g.col.position.z
+      ).toFixed(2),
+    }));
+
   const puedeRobarse = (g: Celador) => {
     if (state.get("nivel") !== 4 || escondido || g.estado !== "espera") return false;
     const wp = g.patrulla[g.idx];
@@ -727,10 +733,10 @@ export function buildLevel4(game: Game) {
     const cam = game.player.camera;
     const dx = cam.position.x - g.col.position.x;
     const dz = cam.position.z - g.col.position.z;
-    if (Math.hypot(dx, dz) > 2.1) return false;
+    if (Math.hypot(dx, dz) > 3.2) return false;
     const facing = new Vector3(Math.sin(g.yaw), 0, Math.cos(g.yaw));
     const dir = new Vector3(dx, 0, dz).normalize();
-    return Vector3.Dot(facing, dir) < -0.3; // estás a su espalda
+    return Vector3.Dot(facing, dir) < 0.25; // basta con no ponerte de frente
   };
 
   const resetCeladores = () => {
@@ -1012,7 +1018,7 @@ export function buildLevel4(game: Game) {
     prevCam.copyFrom(cam.position);
     const oculto = !!escondido;
     const agachado = game.player.crouched;
-    const ruidoRadio = velJugador < 0.4 || oculto ? 0 : agachado ? 2 : game.player.sprinting ? 11 : 6.5;
+    const ruidoRadio = velJugador < 0.4 || oculto ? 0 : agachado ? 1.2 : game.player.sprinting ? 9 : 4.5;
     // medidor de ruido del HUD: 0..1 sobre el máximo (correr = 11 m)
     const cercano = celadores.reduce(
       (min, g) => Math.min(min, Vector3.Distance(g.col.position, cam.position)),
@@ -1030,12 +1036,15 @@ export function buildLevel4(game: Game) {
       // ¿te ve? (cono + distancia + línea de vista; la linterna delata de lejos)
       let ve = false;
       if (!oculto && now > graciaHasta) {
-        let rango = 11 * (agachado ? 0.85 : 1);
-        if (game.player.flashOn) rango += 6;
+        // más indulgente: menos alcance, cono más estrecho y ciegos mientras
+        // están ocupados en su parada (sentados, fumando)
+        const ocupado = g.estado === "espera";
+        let rango = (ocupado ? 4.5 : 8.5) * (agachado ? 0.72 : 1);
+        if (game.player.flashOn) rango += 4;
         if (dist < rango) {
           const facing = new Vector3(Math.sin(g.yaw), 0, Math.cos(g.yaw));
           const dir = new Vector3(dx / dist, 0, dz / dist);
-          if (Vector3.Dot(facing, dir) > 0.55 || dist < 1.7) {
+          if (Vector3.Dot(facing, dir) > 0.72 || dist < 1.3) {
             const origen = new Vector3(gp.x, 1.5, gp.z);
             const d3 = Vector3.Distance(origen, cam.position);
             const ray = new Ray(origen, cam.position.subtract(origen).normalize(), d3);
@@ -1051,7 +1060,8 @@ export function buildLevel4(game: Game) {
           // primero sospecha (te ha visto de refilón), luego te persigue
           if (g.estado !== "sospecha") {
             g.estado = "sospecha";
-            g.sospechaHasta = now + (dist < 4 ? 260 : 900);
+            // margen para quitarse de en medio antes de que salga a por ti
+            g.sospechaHasta = now + (dist < 4 ? 700 : 1600);
             g.ruta = [];
             game.sfx.suspect();
           } else if (now > g.sospechaHasta) {
@@ -1099,9 +1109,9 @@ export function buildLevel4(game: Game) {
       if (g.estado === "caza") {
         cazando++;
         const objetivo = g.spotObjetivo ?? (ve ? cam.position : g.lastSeen);
-        mover(g, objetivo.x, objetivo.z, 4.9, dt);
+        mover(g, objetivo.x, objetivo.z, 4.0, dt); // corren menos que tu sprint
         // te atrapa
-        if (!oculto && dist < 1.25) {
+        if (!oculto && dist < 1.05) {
           void pillado();
           return;
         }
@@ -1110,7 +1120,7 @@ export function buildLevel4(game: Game) {
           void pillado();
           return;
         }
-        if (!ve && !g.spotObjetivo && now - g.lastLOS > 3500) {
+        if (!ve && !g.spotObjetivo && now - g.lastLOS > 2200) {
           g.estado = "busca";
           g.target.copyFrom(g.lastSeen);
           g.buscaHasta = 0;
@@ -1140,17 +1150,26 @@ export function buildLevel4(game: Game) {
         }
       } else if (g.estado === "espera") {
         g.npc.setMoving(false);
+        const wp = g.patrulla[g.idx];
+        if (wp?.mira !== undefined) {
+          g.yaw = lerpAngle(g.yaw, wp.mira, Math.min(1, dt * 3));
+          g.npc.root.rotation.y = g.yaw;
+        }
         if (now > g.esperaHasta) {
+          g.npc.setSitting(false);
+          g.npc.setSmoking(false);
           g.idx = (g.idx + 1) % g.patrulla.length;
           g.estado = "ronda";
         }
       } else {
         // ronda
         const wp = g.patrulla[g.idx];
-        if (mover(g, wp.x, wp.z, 1.75, dt)) {
+        if (mover(g, wp.x, wp.z, 1.45, dt)) {
           if (wp.w) {
             g.estado = "espera";
             g.esperaHasta = now + wp.w * 1000;
+            if (wp.pose === "sentado") g.npc.setSitting(true);
+            if (wp.pose === "fuma") g.npc.setSmoking(true);
           } else {
             g.idx = (g.idx + 1) % g.patrulla.length;
           }

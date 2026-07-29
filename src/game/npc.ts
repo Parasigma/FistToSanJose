@@ -1,4 +1,5 @@
 import {
+  Color3,
   DynamicTexture,
   Mesh,
   MeshBuilder,
@@ -36,6 +37,10 @@ export interface NPC {
   hit: Mesh;
   /** Activa/para la animación de andar (balanceo de piernas y brazos). */
   setMoving: (m: boolean) => void;
+  /** Sentarse (en una silla): piernas dobladas y cuerpo más bajo. */
+  setSitting: (s: boolean) => void;
+  /** Fumar: se lleva la mano a la boca cada pocos segundos, con brasa. */
+  setSmoking: (s: boolean) => void;
 }
 
 /** Cara pixelada 32x32 estilo PSX: inquietante por lo tosca. */
@@ -149,10 +154,25 @@ export function createNPC(scene: Scene, o: NPCOpts): NPC {
   hit.isPickable = true;
   hit.checkCollisions = true;
 
+  // brasa del cigarro (solo visible al fumar)
+  const brasa = MeshBuilder.CreateBox("brasa_" + o.name, { size: 0.045 }, scene);
+  const mBrasa = new StandardMaterial("m_brasa_" + o.name, scene);
+  mBrasa.diffuseColor = Color3.FromHexString("#ff6a2a");
+  mBrasa.emissiveColor = Color3.FromHexString("#ff6a2a");
+  mBrasa.specularColor = Color3.Black();
+  brasa.material = mBrasa;
+  brasa.parent = armR;
+  brasa.position.set(0, -0.4, 0.06);
+  brasa.isPickable = false;
+  brasa.setEnabled(false);
+
   const baseYaw = o.yaw;
   const faceRange = o.faceRange ?? 4.5;
   let t = Math.random() * 10;
   let moving = false;
+  let sitting = false;
+  let smoking = false;
+  let smokeT = Math.random() * 4;
   let wt = 0;
   scene.onBeforeRenderObservable.add(() => {
     const dts = scene.getEngine().getDeltaTime() / 1000;
@@ -166,11 +186,25 @@ export function createNPC(scene: Scene, o: NPCOpts): NPC {
       legR.rotation.x = -sw;
       armL.rotation.x = -sw * 0.65;
       armR.rotation.x = sw * 0.65;
+    } else if (sitting) {
+      // muslos hacia delante y cuerpo hundido en la silla
+      legL.rotation.x = -1.35;
+      legR.rotation.x = -1.35;
+      armL.rotation.x = -0.3;
+      if (!smoking) armR.rotation.x = -0.3;
     } else if (Math.abs(legL.rotation.x) > 0.01) {
       legL.rotation.x *= 0.82;
       legR.rotation.x *= 0.82;
       armL.rotation.x *= 0.82;
       armR.rotation.x *= 0.82;
+    }
+    // fumar: caladas periódicas llevándose la mano a la boca
+    if (smoking) {
+      smokeT += dts;
+      const ciclo = smokeT % 5.2;
+      const subiendo = ciclo < 0.8 ? ciclo / 0.8 : ciclo < 2.1 ? 1 : ciclo < 2.9 ? 1 - (ciclo - 2.1) / 0.8 : 0;
+      armR.rotation.x = -2.05 * subiendo - (sitting ? 0.3 : 0) * (1 - subiendo);
+      mBrasa.emissiveColor = Color3.FromHexString(ciclo > 0.8 && ciclo < 2.1 ? "#ff9a3a" : "#c2401a");
     }
     if (o.manualYaw) return;
     const cam = scene.activeCamera;
@@ -184,5 +218,22 @@ export function createNPC(scene: Scene, o: NPCOpts): NPC {
     root.rotation.y += diff * 0.045;
   });
 
-  return { root, hit, setMoving: (m: boolean) => (moving = m) };
+  return {
+    root,
+    hit,
+    setMoving: (m: boolean) => (moving = m),
+    setSitting: (s: boolean) => {
+      sitting = s;
+      root.position.y = s ? -0.42 : 0;
+      if (!s) {
+        legL.rotation.x = 0;
+        legR.rotation.x = 0;
+      }
+    },
+    setSmoking: (s: boolean) => {
+      smoking = s;
+      brasa.setEnabled(s);
+      if (!s) armR.rotation.x = 0;
+    },
+  };
 }
