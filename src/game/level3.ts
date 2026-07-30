@@ -1,8 +1,11 @@
 import {
+  Animation,
   Color3,
   DynamicTexture,
+  EasingFunction,
   Mesh,
   MeshBuilder,
+  SineEase,
   StandardMaterial,
   Texture,
   TransformNode,
@@ -877,6 +880,7 @@ export function buildLevel3(game: Game) {
   let lockAngle = 0;
   let lockSweet = 1;
   let lockReady = 0;
+  let abriendo = false; // animación de apertura en curso
   let lockAcc = 0;
   const lockSaved = { pos: new Vector3(), rx: 0, ry: 0 };
   const lockFrom = new Vector3();
@@ -911,11 +915,16 @@ export function buildLevel3(game: Game) {
     lockAngle = 0;
     destTip.setEnabled(true);
     document.getElementById("lock-ui")!.classList.remove("hidden");
+    const msg = document.getElementById("lock-msg");
+    if (msg) {
+      msg.textContent = "";
+      msg.className = "";
+    }
     hud.hide();
     game.sfx.switchClick();
   };
   const exitLock = () => {
-    if (lockMode !== 2) return;
+    if (lockMode !== 2 || abriendo) return; // no cortar la animación de apertura
     lockMode = 3;
     lockFrom.copyFrom(game.player.camera.position);
     lockFromRx = game.player.camera.rotation.x;
@@ -961,25 +970,56 @@ export function buildLevel3(game: Game) {
   });
 
   const TOL = 0.38; // ~22°: exige buscar, pero no adivinar al grado
+  /** El HUD está oculto durante el minijuego: el aviso va en su propio panel. */
+  const lockMsg = (texto: string, clase = "") => {
+    const el = document.getElementById("lock-msg");
+    if (!el) return;
+    el.textContent = texto;
+    el.className = clase;
+  };
+
   const intentarAbrir = () => {
-    if (lockMode !== 2) return;
-    if (angDist(lockAngle, lockSweet) < TOL) {
-      game.sfx.lockClack();
+    if (lockMode !== 2 || abriendo) return;
+    const d = angDist(lockAngle, lockSweet);
+    if (d >= TOL) {
+      game.sfx.locked();
+      lockMsg(d < 0.75 ? "CASI — el pestillo se ha movido" : "AHÍ NO HAY NADA QUE EMPUJAR", "fail");
+      return;
+    }
+    // acierto: se abre a la vista, con su animación y su ruido
+    abriendo = true;
+    game.sfx.lockClack();
+    lockMsg("¡CLACK! EL CANDADO CEDE", "ok");
+    if (grillete) {
+      Animation.CreateAndStartAnimation("grilleteAbre", grillete, "rotation.z", 60, 22, 0, -1.5, Animation.ANIMATIONLOOPMODE_CONSTANT);
+    }
+    setTimeout(() => {
+      // el candado se descuelga y cae al suelo
       game.sfx.unlock();
+      if (candado) {
+        Animation.CreateAndStartAnimation("candadoCae", candado, "position.y", 60, 26, candado.position.y, 0.06, Animation.ANIMATIONLOOPMODE_CONSTANT);
+        Animation.CreateAndStartAnimation("candadoGira", candado, "rotation.x", 60, 26, 0, 1.4, Animation.ANIMATIONLOOPMODE_CONSTANT);
+      }
+      setTimeout(() => game.sfx.thud(), 380);
+    }, 380);
+    setTimeout(() => {
+      // y la tapa se abre sola, dejando ver lo que hay dentro
+      game.sfx.doorCreak();
+      const ease2 = new SineEase();
+      ease2.setEasingMode(EasingFunction.EASINGMODE_EASEOUT);
+      Animation.CreateAndStartAnimation("tapaAbre", tapaCaja, "rotation.x", 60, 40, 0, -0.9, Animation.ANIMATIONLOOPMODE_CONSTANT, ease2);
+      Animation.CreateAndStartAnimation("tapaSube", tapaCaja, "position.y", 60, 40, tapaCaja.position.y, 1.1, Animation.ANIMATIONLOOPMODE_CONSTANT, ease2);
       state.set("exp_niku_abierto");
-      candado?.dispose();
       grillete?.dispose();
-      tapaCaja.rotation.x = -0.9;
-      tapaCaja.position.y = 1.1;
       spawnYogur();
       updateObjective3();
-      game.notify("El candado se rinde con un CLACK de vergüenza.");
+      lockMsg("EXPEDIENTE ABIERTO", "ok");
+    }, 1150);
+    setTimeout(() => {
+      abriendo = false;
       exitLock();
-    } else {
-      game.sfx.locked();
-      const d = angDist(lockAngle, lockSweet);
-      game.notify(d < 0.75 ? "Casi. El pestillo ha llegado a moverse." : "Nada. Ahí no hay nada que empujar.", 1800);
-    }
+      game.notify("El candado se rinde con un CLACK de vergüenza. Ya puedes abrir el expediente.", 4200);
+    }, 2100);
   };
   window.addEventListener("mousedown", (e) => {
     if (lockMode !== 2) return;

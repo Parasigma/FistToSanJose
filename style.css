@@ -1009,6 +1009,25 @@ body {
   50% { opacity: 1; }
 }
 
+/* el HUD se oculta durante el minijuego, así que el aviso va aquí dentro */
+#lock-msg {
+  min-height: 15px;
+  margin-top: 6px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--ac);
+  text-shadow: 1px 1px 0 #000;
+}
+
+#lock-msg.ok {
+  color: #9fe89f;
+  font-size: 14px;
+}
+
+#lock-msg.fail {
+  color: #e0442e;
+}
+
 #lock-hint {
   margin-top: 8px;
   font-size: 10px;
