@@ -69,7 +69,24 @@ export class Game {
     this.scene = new Scene(this.engine);
   }
 
-  async start(save: SaveData | null) {
+  /** Equipo completo para poder probar cualquier planta sin bloqueos. */
+  private equipoDePruebas() {
+    const kit: Array<[string, string, string]> = [
+      ["linterna", "Linterna de celador", "Correa gastada y una pegatina: «B. — TURNO NOCHE». Enciende con [Q]."],
+      ["destornillador", "Destornillador", "Punta plana, mango agrietado. Abre más cosas que tornillos."],
+      ["martillo", "Martillo de mantenimiento", "Mango gastado, cabeza fiel. Resuelve más puzles que tú."],
+      ["piedras", "Cascotes", "Trozos de yeso. Hacen ruido lejos de ti. [G] para lanzar."],
+      ["mapa", "Mapa de evacuación", "El plano de la planta 2."],
+      ["mapa2", "Plano — Planta 1 · Admisiones", "El plano de la planta 1."],
+      ["mapa3", "Plano — Sótano · El Archivo", "El plano del Archivo."],
+      ["mapa4", "Plano — Ala C", "El plano del ala C y su azotea."],
+    ];
+    for (const [id, name, desc] of kit) this.state.addItem({ id, name, desc });
+    this.state.set("piedras_cogidas");
+    this.player.setFlashlightHidden(false);
+  }
+
+  async start(save: SaveData | null, testNivel = 0) {
     const scene = this.scene;
     scene.clearColor = new Color4(0.008, 0.008, 0.012, 1);
     scene.collisionsEnabled = true;
@@ -124,7 +141,9 @@ export class Game {
     this.wireInput();
     this.wireAutoSave();
 
-    if (!save) {
+    if (testNivel) {
+      hud.fadeInstant(true); // el salto de planta se encarga del fundido
+    } else if (!save) {
       await this.intro();
     } else {
       hud.show();
@@ -134,6 +153,20 @@ export class Game {
     this.playing = true;
     this.player.setControl(true);
     this.checkPause();
+
+    if (testNivel) {
+      this.equipoDePruebas();
+      const saltos: Record<number, (() => void) | null> = {
+        2: this.enterLevel2,
+        3: this.enterLevel3,
+        4: this.enterLevel4,
+        5: this.enterLevel5,
+      };
+      const salto = saltos[testNivel];
+      if (salto) await (salto as () => Promise<void>)();
+      else await hud.fade(false, 900); // la planta 2 es el punto de partida
+      this.notify("MODO PRUEBAS: llevas linterna, herramientas, cascotes y todos los planos.", 6000);
+    }
   }
 
   // ------------------------------------------------------------ interacción

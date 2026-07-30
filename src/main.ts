@@ -10,7 +10,7 @@ if (GameState.hasSave()) btnCont.disabled = false;
 
 let started = false;
 
-async function launch(useSave: boolean) {
+async function launch(useSave: boolean, testNivel = 0) {
   if (started) return;
   started = true;
   menu.classList.add("hidden");
@@ -25,7 +25,7 @@ async function launch(useSave: boolean) {
   const game = new Game(canvas);
   (window as unknown as { game: Game }).game = game;
   game.sfx.init();
-  await game.start(useSave ? GameState.load() : null);
+  await game.start(useSave ? GameState.load() : null, testNivel);
 }
 
 btnNew.addEventListener("click", () => {
@@ -34,5 +34,13 @@ btnNew.addEventListener("click", () => {
 });
 
 btnCont.addEventListener("click", () => launch(true));
+
+// selector de planta para probar pantallas sueltas sin rejugar
+for (const b of Array.from(document.querySelectorAll<HTMLButtonElement>(".test-btn"))) {
+  b.addEventListener("click", () => {
+    GameState.clearSave();
+    launch(false, Number(b.dataset.nivel) || 1);
+  });
+}
 
 document.addEventListener("contextmenu", (e) => e.preventDefault());

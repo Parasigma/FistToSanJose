@@ -1201,6 +1201,55 @@ body {
   line-height: 1.9;
 }
 
+/* ---- selector de planta (pruebas) ---- */
+#menu-test {
+  margin-top: 34px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(74, 70, 60, 0.5);
+}
+
+#menu-test .mt-title {
+  font-size: 9px;
+  letter-spacing: 4px;
+  color: #5c574c;
+  margin-bottom: 12px;
+}
+
+#menu-test .mt-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  justify-content: center;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.test-btn {
+  background: none;
+  border: 1px solid #3a3730;
+  color: #8a8474;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 2px;
+  padding: 7px 12px;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.test-btn:hover {
+  color: var(--ac);
+  border-color: var(--ac);
+}
+
+#menu-test .mt-note {
+  margin-top: 10px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #45413a;
+  font-style: italic;
+}
+
 #menu-warning {
   margin-top: 26px;
   font-size: 11px;
