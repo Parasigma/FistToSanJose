@@ -580,6 +580,21 @@ export function buildLevel3(game: Game) {
   });
 
   // ------------------------------------------------------------- pacientes por los pasillos
+  /** Quiénes han caído (tras la rabia del yogur) y qué se ve en cada uno. */
+  const muertos = new Set<string>();
+  const FORENSE: Record<string, string> = {
+    Rabasco:
+      "Boca abajo entre dos cajas.\nTiene el cuello marcado con heridas punzantes,\nordenadas, casi simétricas.\n\n(Alguien se tomó su tiempo. Alguien muy picado.)",
+    Jorge:
+      "Sentado contra la estantería, como si se hubiera cansado.\nManchas de yogur de piña por toda la camisa,\ny en la boca, a la fuerza.\n\n(La cuchara no aparece.)",
+    Kevin:
+      "Le han vaciado el bolsillo del kebab.\nHuele a döner y a piña, y eso no debería poder oler.\nTiene una ficha de cartón clavada en el pecho: «G–M».",
+    Paquito:
+      "Ha hecho falta tumbar tres estanterías para tumbarlo a él.\nSigue teniendo los puños cerrados.\nEn la frente, una huella de pie descalzo.",
+    Secretaria:
+      "Sigue en su sitio, con el sello en la mano.\nTiene un envase de yogur encajado en la boca\ny un volante sellado en la frente: «AUTORIZADO».\n\n(Al final le dieron su papeleo.)",
+  };
+
   const mkPaciente = (
     nombre: string,
     etiqueta: string,
@@ -595,7 +610,20 @@ export function buildLevel3(game: Game) {
       manualYaw: true,
       ...opts,
     });
-    game.register(npc.hit, "arch_" + nombre, "Hablar con " + etiqueta, () => game.talk(tree(), "s1"));
+    // tras la rabia ya no hablan: solo queda mirarles y describir el destrozo
+    game.register(
+      npc.hit,
+      "arch_" + nombre,
+      () => (muertos.has(nombre) ? "Examinar el cuerpo de " + etiqueta : "Hablar con " + etiqueta),
+      () => {
+        const forense = FORENSE[nombre];
+        if (muertos.has(nombre) && forense) {
+          game.talk({ f1: { speaker: etiqueta.toUpperCase(), text: forense } }, "f1");
+          return;
+        }
+        game.talk(tree(), "s1");
+      }
+    );
     minimap.trackNpc(3, () => ({ x: npc.root.position.x, z: npc.root.position.z }));
     return npc;
   };
@@ -1106,12 +1134,15 @@ export function buildLevel3(game: Game) {
   });
   minimap.trackNpc(3, () => ({ x: nikuArch.root.position.x, z: nikuArch.root.position.z }));
   const victimasRabia: NPC[] = [rabasco, jorge, kevin, paquito, secretaria];
+  const NOMBRE_VICTIMA = ["Rabasco", "Jorge", "Kevin", "Paquito", "Secretaria"];
 
   const caer = (v: NPC, silencioso = false) => {
     v.root.rotation.z = Math.PI / 2;
     v.root.position.y = 0.38;
     v.hit.checkCollisions = false;
     v.setMoving(false);
+    const i = victimasRabia.indexOf(v);
+    if (i >= 0) muertos.add(NOMBRE_VICTIMA[i]); // deja de hablar, pasa a examinarse
     if (!silencioso) game.sfx.thud();
   };
 

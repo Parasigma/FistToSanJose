@@ -563,17 +563,9 @@ export function buildLevel4(game: Game) {
     (luzLector.material as StandardMaterial).diffuseColor = Color3.FromHexString("#3a9a4a");
     (luzLector.material as StandardMaterial).emissiveColor = Color3.FromHexString("#3a9a4a").scale(0.6);
     state.set("nivel3_completado");
-    setTimeout(() => {
-      game.endLevel(
-        "La tarjeta roja parpadeó en verde por primera vez en años.\n" +
-          "El viento de la azotea olía a tormenta y a libertad prestada.\n" +
-          "Desde arriba, San José parecía más grande que por dentro.\n" +
-          "Como si el edificio creciera hacia abajo, hacia el ala\nque nadie dibuja en los planos.\n\n" +
-          "La campana no sonó.\nY eso fue lo más inquietante de todo.\n\n" +
-          "FIN DEL EPISODIO 3\n— continuará —"
-      );
-    }, 1200);
+    setTimeout(() => game.enterLevel5?.(), 1100);
   });
+
 
   // ------------------------------------------------------------- celadores
   const defs: { nombre: string; shirt: string; loot: ItemDef; lootFlag: string; ruta: Ruta[] }[] = [
@@ -705,6 +697,10 @@ export function buildLevel4(game: Game) {
       x: g.npc.root.position.x,
       z: g.npc.root.position.z,
       estado: g.estado,
+      yaw: g.yaw,
+      // el cono refleja lo que de verdad ve: menos si está ocupado en su parada
+      fov: 0.76,
+      range: g.estado === "espera" ? 4.5 : 8.5,
     }));
     return g;
   });

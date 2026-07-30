@@ -282,13 +282,17 @@ body {
 #notify {
   position: absolute;
   bottom: 24%;
-  width: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(860px, 88%);
   text-align: center;
-  font-size: 16px;
-  color: #e8e2ce;
-  text-shadow: 2px 2px 0 #000;
+  font-size: 21px;
+  line-height: 1.5;
+  letter-spacing: 0.5px;
+  color: #f2ecd8;
+  text-shadow: 2px 2px 0 #000, 0 0 14px rgba(0, 0, 0, 0.9);
   opacity: 0;
-  transition: opacity 0.4s;
+  transition: opacity 0.55s;
 }
 
 /* ---- diálogo ---- */

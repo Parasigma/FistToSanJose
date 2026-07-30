@@ -20,7 +20,19 @@ const R = SIZE / 2 - 4; // radio del viewport
 /** PNJs visibles como puntos (los que acechan NO se registran aquí). */
 const npcs: {
   nivel: number;
-  get: () => { x: number; z: number; estado?: string } | null;
+  get: () =>
+    | {
+        x: number;
+        z: number;
+        estado?: string;
+        /** Orientación en el mundo: dibuja su cono de visión. */
+        yaw?: number;
+        /** Semiapertura del cono en radianes. */
+        fov?: number;
+        /** Alcance de visión en metros. */
+        range?: number;
+      }
+    | null;
 }[] = [];
 
 const COLOR_ESTADO: Record<string, string> = {
@@ -133,6 +145,33 @@ export const minimap = {
     ctx.setTransform(cy, -sy, -sy, -cy, C, C);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(def.off, -px, -py);
+
+    // conos de visión de los vigilantes, en el mismo sistema que el plano
+    ctx.translate(-px, -py);
+    for (const n of npcs) {
+      if (n.nivel !== nivel) continue;
+      const p = n.get();
+      if (!p || p.yaw === undefined || !p.range) continue;
+      const gx = (p.x / 2) * OFF_SCALE;
+      const gy = ((p.z - def.zOff) / 2) * OFF_SCALE;
+      const radio = (p.range / 2) * OFF_SCALE;
+      const centro = Math.atan2(Math.cos(p.yaw), Math.sin(p.yaw));
+      const media = p.fov ?? 0.7;
+      const col =
+        p.estado === "caza" ? "224,68,46" : p.estado === "busca" || p.estado === "sospecha" ? "255,210,58" : "232,200,106";
+      const grad = ctx.createRadialGradient(gx, gy, 0, gx, gy, radio);
+      grad.addColorStop(0, `rgba(${col},0.42)`);
+      grad.addColorStop(1, `rgba(${col},0.03)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(gx, gy);
+      ctx.arc(gx, gy, radio, centro - media, centro + media);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = `rgba(${col},0.5)`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.restore();
 

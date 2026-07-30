@@ -137,6 +137,8 @@ export class Player {
       const dtE = Math.min(scene.getEngine().getDeltaTime(), 50) / 1000;
       const eyeTarget = this.crouched ? 1.04 : EYE;
       this.eyeCur += (eyeTarget - this.eyeCur) * Math.min(1, dtE * 9);
+      // agachado el cuerpo también encoge: así se cuela por huecos bajos
+      cam.ellipsoid.y = this.crouched ? 0.5 : 0.8;
       if (this.lockY) p.y = this.eyeCur + Math.sin(this.bobPhase) * (this.crouched ? 0.025 : 0.045);
       // balanceo de la linterna + parpadeo sutil del haz
       this.flashRoot.position.x = 0.3 + Math.sin(this.bobPhase * 0.5) * 0.005;

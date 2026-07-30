@@ -691,11 +691,22 @@ export function buildLevel2(game: Game) {
     "El de la tarjeta roja se cree que nadie mira su bolsillo.\nYo miro TODOS los bolsillos.\nEs lo único que me queda por hacer.",
     "Shhh. Viene alguien.\n(...)\nMentira. Pero mírate la cara. Impagable.",
   ];
+  const lineasAzotea = [
+    "Aire. ¿Lo notas?\nYo llevo tres años sin notarlo y ahora no sé qué hacer con él.",
+    "Desde aquí se ve el pueblo.\nLas luces. La gente durmiendo con la puerta sin llave.\nQué morro.",
+    "No mires abajo desde el pretil.\nMira ARRIBA. Siempre hay otra azotea.\nEse es el chiste del edificio.",
+    "Los extractores estos me quitaron el sueño dos años.\nAhora que están parados... no puedo dormir.\nNo hay manera conmigo.",
+    "Cuidado con el depósito.\nCuatro mil litros esperando un motivo.",
+    "Aquí arriba no hay celadores.\n¿Y sabes por qué? Porque de aquí no se escapa nadie.\nEso dicen ellos. Míralos.",
+    "El de mantenimiento se llamaba F.\nDejaba notas por todas partes.\nUn día dejó de dejarlas. Fin de la historia.",
+    "¿La escalera? Plegada desde antes de que yo entrara.\nComo todo lo que sube.",
+    "Si subes ahí arriba y encuentras algo mío,\nno lo leas.\nNo lo leas, MM. Lo digo en serio.",
+  ];
   let bolsa: number[] = [];
   let bolsaNivel = -1;
   const frase = () => {
     const nv = (state.get("nivel") as number) ?? 1;
-    const set = nv === 4 ? lineasAlaC : lineasP1;
+    const set = nv === 5 ? lineasAzotea : nv === 4 ? lineasAlaC : lineasP1;
     if (!bolsa.length || bolsaNivel !== nv) {
       bolsaNivel = nv;
       bolsa = set.map((_, i) => i).sort(() => Math.random() - 0.5);
@@ -706,9 +717,27 @@ export function buildLevel2(game: Game) {
     game.talk({ s: { speaker: "NIKUMAN", text: frase() } }, "s")
   );
 
-  const esquinas = [
-    [1, 7], [28, 7], [1, 15], [28, 15], [4, 18], [25, 18], [12, 10], [17, 10], [7, 1], [22, 1], [10, 18], [20, 19],
-  ].map(([c, r]) => new Vector3(cx(c), 0, cz(r)));
+  /**
+   * Sitios donde puede plantarse "al doblar la esquina", calculados en vivo:
+   * direcciones fuera de tu campo de visión con hueco libre. Así funciona en
+   * cualquier planta sin listas de coordenadas a mano.
+   */
+  const buscarEsquinas = (fwd: Vector3): Vector3[] => {
+    const cam = game.player.camera;
+    const salida: Vector3[] = [];
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      const dir = new Vector3(Math.sin(a), 0, Math.cos(a));
+      if (Vector3.Dot(fwd, dir) > 0.15) continue; // debe quedar fuera de tu vista
+      const dist = 6 + Math.random() * 2.5;
+      const origen = new Vector3(cam.position.x, 1.2, cam.position.z);
+      const ray = new Ray(origen, dir, dist + 0.8);
+      const hit = scene.pickWithRay(ray, (m) => m.checkCollisions && m.isEnabled());
+      if (hit?.hit) continue; // hay pared antes: ahí no cabe
+      salida.push(new Vector3(cam.position.x + dir.x * dist, 0, cam.position.z + dir.z * dist));
+    }
+    return salida;
+  };
 
   let activo = false;
   let asustado = false;
@@ -730,7 +759,7 @@ export function buildLevel2(game: Game) {
   game.onUpdate.push(() => {
     // acecha en la planta 1 y en el ala C (en el Archivo ya está él "de verdad")
     const nvNik = (state.get("nivel") as number) ?? 1;
-    if ((nvNik !== 2 && nvNik !== 4) || !game.playing || game.uiBlocked()) return;
+    if (nvNik < 2 || nvNik === 3 || !game.playing || game.uiBlocked()) return;
     const cam = game.player.camera;
     const now = performance.now();
     if (!iniciado) {
@@ -778,14 +807,7 @@ export function buildLevel2(game: Game) {
       }
     } else {
       // esperando al doblar una esquina: cerca y mirándote, fuera de tu vista
-      const candidatas = esquinas.filter((p) => {
-        const v = p.subtract(cam.position);
-        v.y = 0;
-        const d = v.length();
-        if (d < 4.5 || d > 10) return false;
-        v.normalize();
-        return Vector3.Dot(fwd, v) < 0.15;
-      });
+      const candidatas = buscarEsquinas(fwd);
       if (candidatas.length) {
         aparecer(candidatas[Math.floor(Math.random() * candidatas.length)]);
         return;

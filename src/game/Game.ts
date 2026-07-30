@@ -20,6 +20,7 @@ import { buildLevel1 } from "./level1";
 import { buildLevel2 } from "./level2";
 import { buildLevel3 } from "./level3";
 import { buildLevel4 } from "./level4";
+import { buildLevel5 } from "./level5";
 import { GameState, SaveData } from "./state";
 
 export interface Interactable {
@@ -55,6 +56,8 @@ export class Game {
   enterLevel3: (() => void) | null = null;
   /** Lo instala level4; lo invoca la puerta del ALA C del Archivo. */
   enterLevel4: (() => void) | null = null;
+  /** Lo instala level5; lo invoca la puerta de la azotea del ALA C. */
+  enterLevel5: (() => void) | null = null;
 
   private interactables = new Map<string, Interactable>();
   private currentTarget: Interactable | null = null;
@@ -90,9 +93,18 @@ export class Game {
     buildLevel2(this);
     buildLevel3(this);
     buildLevel4(this);
+    buildLevel5(this);
     const nivel = (this.state.get("nivel") as number) ?? 1;
     hud.setLocation(
-      nivel === 4 ? "ALA C" : nivel === 3 ? "SÓTANO · EL ARCHIVO" : nivel === 2 ? "PLANTA 1 · ADMISIONES" : "PLANTA 2 · ALA B"
+      nivel === 5
+        ? "AZOTEA · ALA C"
+        : nivel === 4
+          ? "ALA C"
+          : nivel === 3
+            ? "SÓTANO · EL ARCHIVO"
+            : nivel === 2
+              ? "PLANTA 1 · ADMISIONES"
+              : "PLANTA 2 · ALA B"
     );
     hud.startClock(3, 47);
     this.wirePauseMenu();
@@ -105,7 +117,7 @@ export class Game {
       const cam = this.player.camera;
       const nv = (this.state.get("nivel") as number) ?? 1;
       // cada planta exige su propio plano encontrado
-      const mapaDe = nv === 4 ? "mapa4" : nv === 3 ? "mapa3" : nv === 2 ? "mapa2" : "mapa";
+      const mapaDe = nv === 5 ? "mapa4" : nv === 4 ? "mapa4" : nv === 3 ? "mapa3" : nv === 2 ? "mapa2" : "mapa";
       minimap.update(nv, cam.position.x, cam.position.z, cam.rotation.y, this.playing && this.state.has(mapaDe));
     });
     window.addEventListener("resize", () => this.engine.resize());
@@ -280,6 +292,13 @@ export class Game {
     window.addEventListener("click", (ev) => {
       const t = ev.target as HTMLElement | null;
       if (t && typeof t.closest === "function" && t.closest(".panel")) return;
+      // con un diálogo abierto, el clic avanza el texto (y lo cierra al final):
+      // así no hay que soltar el ratón para pulsar teclas
+      if (this.dialogue.isOpen) {
+        if (t && typeof t.closest === "function" && t.closest("#d-options")) return; // las opciones ya se eligen con su propio clic
+        this.dialogue.advance();
+        return;
+      }
       if (this.playing && !this.ended && !this.keypad.isOpen && !this.inventory.isOpen && !this.modal) this.tryLock();
     });
 

@@ -190,7 +190,37 @@ propio hermano «el Director»). Flags: `mario_motes`, `mario_tomo_curso`, `kevi
   episodio: en la azotea, por primera vez, **la campana no suena**.
 - Flags clave: `tablon_visto`, `vio_azotea`, `rob_*`, `nota_azotea`, `nivel3_completado`.
 
-## Ganchos abiertos (para episodio 4+)
+## Episodio 4 — LA AZOTEA (implementado)
+
+Azotea industrial del ala C con cielo nocturno (estrellas, luna con halo, ciudad y
+arboleda en el horizonte), climatizadores, conductos, depósito de agua, antena y caseta
+de mantenimiento. Muros altos al norte y al oeste (**hay más azotea arriba**) y pretiles
+bajos al sur y al este para ver el paisaje.
+
+Puzle en cadena para desplegar la escalera de acceso al nivel superior:
+
+1. **Nota de «F.»** en el suelo: arriba está la salida; la escalera solo la suelta el
+   torno; y ojo, **si se da corriente al torno con los extractores atascados salta el
+   diferencial**.
+2. **Entrar en la caseta**: la puerta está atrancada por dentro; hay que desatornillar la
+   rejilla del conducto (destornillador del Archivo) y **colarse agachado** ([C] encoge el
+   cuerpo, no solo la cámara).
+3. **Desatascar los dos extractores**: uno a mano (nido de trapos), el otro a martillazos
+   (martillo del Archivo).
+4. **Cuadro eléctrico**: subir EXTRACTOR A → EXTRACTOR B → TORNO. En mal orden salta el
+   diferencial: apagón, todo a cero y seis segundos de espera.
+5. **Manivela** (banco de la caseta) + **válvula del contrapeso** junto al depósito: el
+   agua baja el contrapeso y la escalera se despliega con estruendo.
+
+Flags: `az_nota`, `az_rejilla`, `az_extA/B`, `az_luz`, `manivela`, `az_escalera`,
+`nivel4_completado`. El acechador aparece aquí con frases propias de la azotea («Mira
+ARRIBA. Siempre hay otra azotea. Ese es el chiste del edificio»).
+
+Tras la rabia del yogur, los cuerpos del Archivo **ya no hablan**: se examinan y describen
+lo que les hizo Nikuman (heridas punzantes en el cuello, manchas de yogur, un envase
+encajado en la boca de la secretaria con un volante «AUTORIZADO» en la frente).
+
+## Ganchos abiertos (para episodio 5+)
 
 - **El Archivo** (cartel en el descansillo): expedientes cómicos de todos; el de C.M. no existe
   o está falsificado → primera grieta del misterio.

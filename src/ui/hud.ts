@@ -116,7 +116,10 @@ export const hud = {
     el.textContent = t;
     el.style.opacity = "1";
     window.clearTimeout(notifyTimer);
-    notifyTimer = window.setTimeout(() => (el.style.opacity = "0"), ms);
+    // los avisos se leen a ritmo de lectura, no a ritmo de reloj: se da un
+    // mínimo generoso y tiempo extra según lo largo que sea el texto
+    const lectura = 2600 + t.length * 55;
+    notifyTimer = window.setTimeout(() => (el.style.opacity = "0"), Math.max(ms, lectura));
   },
   fade(toBlack: boolean, ms = 1400): Promise<void> {
     const f = $("fade");
