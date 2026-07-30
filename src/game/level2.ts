@@ -14,6 +14,7 @@ import {
   Texture,
   TransformNode,
   Vector3,
+  Vector4,
 } from "@babylonjs/core";
 import { colorMat, grimeTexture, texMat } from "../core/textures";
 import { hud } from "../ui/hud";
@@ -152,7 +153,19 @@ export function buildLevel2(game: Game) {
     m.emissiveTexture = dt;
     m.emissiveColor = new Color3(0.55, 0.55, 0.55);
     m.specularColor = Color3.Black();
-    const p = MeshBuilder.CreatePlane("sgp2_" + text, { width: w, height: w * (64 / texW), sideOrientation: Mesh.DOUBLESIDE }, scene);
+    // DOUBLESIDE con la UV de la cara trasera invertida: el rótulo se lee
+    // igual de bien por detrás en vez de salir escrito del revés
+    const p = MeshBuilder.CreatePlane(
+      "sgp2_" + text,
+      {
+        width: w,
+        height: w * (64 / texW),
+        sideOrientation: Mesh.DOUBLESIDE,
+        frontUVs: new Vector4(0, 0, 1, 1),
+        backUVs: new Vector4(1, 0, 0, 1),
+      },
+      scene
+    );
     p.position.set(x, y, z);
     p.rotation.y = faceRy + Math.PI;
     p.material = m;

@@ -11,6 +11,7 @@ import { Player } from "../core/player";
 import { setupPSX } from "../core/psx";
 import { Sfx } from "../core/sfx";
 import { Dialogue, DTree } from "../ui/dialogue";
+import { inferPaper, PaperKind, PaperReader } from "./reader";
 import { hud } from "../ui/hud";
 import { InventoryUI } from "../ui/inventory";
 import { JournalUI } from "../ui/journal";
@@ -38,6 +39,7 @@ export class Game {
   sfx = new Sfx();
   state = new GameState();
   dialogue = new Dialogue();
+  reader!: PaperReader;
   inventory = new InventoryUI();
   journal = new JournalUI();
   keypad!: Keypad;
@@ -101,6 +103,7 @@ export class Game {
     this.player.onStep = () => this.sfx.step();
     setupPSX(this.engine, this.player.camera);
     this.keypad = new Keypad(this.sfx);
+    this.reader = new PaperReader(scene, this.player.camera);
     this.dialogue.onBlip = () => this.sfx.blip();
 
     if (save) this.state.restore(save);
@@ -219,9 +222,34 @@ export class Game {
     );
   }
 
-  talk(tree: DTree, start: string) {
+  /**
+   * Abre un diálogo. Si lo que se lee es un papel (nota, expediente, archivo),
+   * el personaje lo coge con la mano y lo acerca a la cara mientras dura la
+   * lectura; el cuadro de diálogo de abajo sigue funcionando igual.
+   * `paper` fuerza el tipo de documento, o `null` para que no salga ninguno.
+   */
+  talk(tree: DTree, start: string, opts?: { paper?: PaperKind | null }) {
     this.player.setControl(false);
+    // si un diálogo pisa a otro, el papel del anterior no puede quedarse colgado
+    this.dialogue.onNode = null;
+    const kind = opts && "paper" in opts ? opts.paper ?? null : inferPaper(tree[start]?.speaker);
+    if (!kind) this.reader.hide();
+    if (kind) {
+      let primero = true;
+      this.dialogue.onNode = (speaker, text) => {
+        if (primero) {
+          primero = false;
+          this.reader.show(kind, speaker, text);
+          this.sfx.paper();
+        } else {
+          this.reader.update(speaker, text);
+          this.sfx.paperFlip();
+        }
+      };
+    }
     this.dialogue.open(tree, start, () => {
+      this.dialogue.onNode = null;
+      this.reader.hide();
       if (!this.ended) this.player.setControl(true);
     });
   }

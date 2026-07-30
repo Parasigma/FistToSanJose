@@ -9,6 +9,7 @@ import {
   StandardMaterial,
   Texture,
   Vector3,
+  Vector4,
 } from "@babylonjs/core";
 import { colorMat, grimeTexture, texMat } from "../core/textures";
 import { hud } from "../ui/hud";
@@ -38,8 +39,8 @@ const MAP5 = [
   "#............................#",
   "#.........####...............#",
   "#.........####...............#",
-  "#............................#",
-  "#............................#",
+  "#......................###...#",
+  "#......................###...#",
   "##############################",
 ];
 
@@ -98,7 +99,19 @@ export function buildLevel5(game: Game) {
     m.emissiveTexture = dt;
     m.emissiveColor = new Color3(0.55, 0.55, 0.55);
     m.specularColor = Color3.Black();
-    const p = MeshBuilder.CreatePlane("sgp5_" + text, { width: w, height: w * (64 / texW), sideOrientation: Mesh.DOUBLESIDE }, scene);
+    // DOUBLESIDE con la UV de la cara trasera invertida: el rótulo se lee
+    // igual de bien por detrás en vez de salir escrito del revés
+    const p = MeshBuilder.CreatePlane(
+      "sgp5_" + text,
+      {
+        width: w,
+        height: w * (64 / texW),
+        sideOrientation: Mesh.DOUBLESIDE,
+        frontUVs: new Vector4(0, 0, 1, 1),
+        backUVs: new Vector4(1, 0, 0, 1),
+      },
+      scene
+    );
     p.position.set(x, y, z);
     p.rotation.y = faceRy + Math.PI;
     p.material = m;
@@ -110,71 +123,24 @@ export function buildLevel5(game: Game) {
   minimap.register(5, MAP5, Z_OFF);
 
   // ------------------------------------------------------------- cielo nocturno
-  const skyTex = new DynamicTexture("skyT", { width: 2048, height: 1024 }, scene, false, Texture.BILINEAR_SAMPLINGMODE);
+  // Noche cerrada y nada más: degradado, estrellas y la luna. Sin skyline.
+  const skyTex = new DynamicTexture("skyT", { width: 1024, height: 512 }, scene, false, Texture.BILINEAR_SAMPLINGMODE);
   {
     const c = skyTex.getContext() as unknown as CanvasRenderingContext2D;
-    const g = c.createLinearGradient(0, 0, 0, 1024);
-    g.addColorStop(0, "#05070f");
-    g.addColorStop(0.42, "#0b1020");
-    g.addColorStop(0.62, "#16203a");
-    g.addColorStop(0.72, "#2a2f3e");
-    g.addColorStop(1, "#0a0c10");
+    const g = c.createLinearGradient(0, 0, 0, 512);
+    g.addColorStop(0, "#04060d"); // cénit
+    g.addColorStop(0.45, "#080d1a");
+    g.addColorStop(0.72, "#0c1424");
+    g.addColorStop(1, "#04050a"); // por debajo del horizonte
     c.fillStyle = g;
-    c.fillRect(0, 0, 2048, 1024);
-    // estrellas (solo en la mitad alta)
-    for (let i = 0; i < 900; i++) {
-      const y = Math.random() * 620;
-      const b = 0.35 + Math.random() * 0.65;
+    c.fillRect(0, 0, 1024, 512);
+    for (let i = 0; i < 700; i++) {
+      // más densas arriba, se van apagando hacia el horizonte
+      const y = Math.pow(Math.random(), 0.75) * 400;
+      const b = (0.3 + Math.random() * 0.7) * (1 - y / 560);
       c.fillStyle = `rgba(255,255,${230 + Math.random() * 25},${b})`;
-      const s = Math.random() < 0.08 ? 3 : Math.random() < 0.4 ? 2 : 1;
-      c.fillRect(Math.random() * 2048, y, s, s);
-    }
-    // luna con halo
-    const lx = 1520;
-    const ly = 210;
-    const halo = c.createRadialGradient(lx, ly, 6, lx, ly, 130);
-    halo.addColorStop(0, "rgba(220,228,255,0.5)");
-    halo.addColorStop(1, "rgba(220,228,255,0)");
-    c.fillStyle = halo;
-    c.fillRect(lx - 130, ly - 130, 260, 260);
-    c.fillStyle = "#dfe6f5";
-    c.beginPath();
-    c.arc(lx, ly, 34, 0, Math.PI * 2);
-    c.fill();
-    c.fillStyle = "rgba(150,160,185,0.55)";
-    c.beginPath();
-    c.arc(lx - 11, ly - 8, 7, 0, Math.PI * 2);
-    c.arc(lx + 9, ly + 12, 5, 0, Math.PI * 2);
-    c.fill();
-    // horizonte: ciudad baja y arboleda
-    const suelo = 700;
-    c.fillStyle = "#0e1118";
-    c.fillRect(0, suelo, 2048, 1024 - suelo);
-    // edificios lejanos con alguna ventana encendida
-    for (let x = 0; x < 2048; ) {
-      const bw = 40 + Math.random() * 90;
-      const bh = 30 + Math.random() * 110;
-      c.fillStyle = "#121722";
-      c.fillRect(x, suelo - bh, bw, bh);
-      if (Math.random() < 0.55) {
-        for (let k = 0; k < 3; k++) {
-          if (Math.random() < 0.45) {
-            c.fillStyle = "rgba(255,214,140,0.75)";
-            c.fillRect(x + 8 + Math.random() * (bw - 18), suelo - bh + 8 + Math.random() * (bh - 20), 5, 6);
-          }
-        }
-      }
-      x += bw + 6 + Math.random() * 26;
-    }
-    // arboleda en primera línea del horizonte
-    for (let x = -20; x < 2068; x += 14 + Math.random() * 22) {
-      const th = 46 + Math.random() * 74;
-      const tw = 26 + Math.random() * 34;
-      c.fillStyle = "#080b0e";
-      c.beginPath();
-      c.ellipse(x, suelo - th * 0.55, tw / 2, th * 0.62, 0, 0, Math.PI * 2);
-      c.fill();
-      c.fillRect(x - 2.5, suelo - th * 0.2, 5, th * 0.25);
+      const s = Math.random() < 0.06 ? 2 : 1;
+      c.fillRect(Math.random() * 1024, y, s, s);
     }
     skyTex.update();
   }
@@ -190,6 +156,53 @@ export function buildLevel5(game: Game) {
   sky.applyFog = false;
   sky.isPickable = false;
   sky.setEnabled(false);
+
+  // la luna: malla propia a distancia fija de la cámara, así se queda clavada
+  // en el mismo punto del cielo por mucho que se recorra la azotea
+  const lunaTex = new DynamicTexture("azLunaT", { width: 256, height: 256 }, scene, false, Texture.BILINEAR_SAMPLINGMODE);
+  {
+    const c = lunaTex.getContext() as unknown as CanvasRenderingContext2D;
+    c.clearRect(0, 0, 256, 256);
+    const halo = c.createRadialGradient(128, 128, 52, 128, 128, 126);
+    halo.addColorStop(0, "rgba(198,212,245,0.42)");
+    halo.addColorStop(0.45, "rgba(160,178,220,0.12)");
+    halo.addColorStop(1, "rgba(150,170,215,0)");
+    c.fillStyle = halo;
+    c.fillRect(0, 0, 256, 256);
+    c.fillStyle = "#e6ecf8";
+    c.beginPath();
+    c.arc(128, 128, 52, 0, Math.PI * 2);
+    c.fill();
+    // mares lunares: manchas suaves, nada de cara sonriente
+    for (const [mx, my, mr, a] of [
+      [110, 112, 17, 0.3],
+      [146, 142, 12, 0.24],
+      [120, 152, 9, 0.2],
+      [149, 106, 7, 0.16],
+    ] as const) {
+      c.fillStyle = `rgba(148,160,190,${a})`;
+      c.beginPath();
+      c.arc(mx, my, mr, 0, Math.PI * 2);
+      c.fill();
+    }
+    lunaTex.update();
+  }
+  lunaTex.hasAlpha = true;
+  const matLuna = new StandardMaterial("azLunaM", scene);
+  matLuna.emissiveTexture = lunaTex;
+  matLuna.opacityTexture = lunaTex;
+  matLuna.diffuseColor = Color3.Black();
+  matLuna.specularColor = Color3.Black();
+  matLuna.disableLighting = true;
+  const luna = MeshBuilder.CreatePlane("azLuna", { size: 22 }, scene);
+  luna.material = matLuna;
+  luna.billboardMode = Mesh.BILLBOARDMODE_ALL;
+  luna.infiniteDistance = true; // la posición es un desvío desde la cámara
+  // al norte y a media altura: se ve de frente nada más salir a la azotea
+  luna.position.set(19.6, 20.5, -64);
+  luna.applyFog = false;
+  luna.isPickable = false;
+  luna.setEnabled(false);
 
   // ------------------------------------------------------------- suelo y bordes
   const suelo = MeshBuilder.CreateGround("azGround", { width: W, height: H }, scene);
@@ -209,6 +222,26 @@ export function buildLevel5(game: Game) {
   box("azPretilE", 0.85, 1.15, H, W - 0.42, 0.58, Z_OFF + H / 2, matPretil);
   box("azAlbardaS", W, 0.16, 1.1, W / 2, 1.2, Z_OFF + H - 0.42, matChapaOsc, { collide: false });
   box("azAlbardaE", 1.1, 0.16, H, W - 0.42, 1.2, Z_OFF + H / 2, matChapaOsc, { collide: false });
+
+  // ------------------------------------------------------------- casetón de bajada
+  // Por aquí se sale del ala C: es donde aparece Mario y por donde ya no se
+  // vuelve. Puerta cortafuegos que solo abre desde dentro.
+  const BX = 49; // centro del casetón
+  const BZ = Z_OFF + 36.4;
+  box("azBajN", 5.6, 3.2, 0.3, BX, 1.6, BZ - 2.1, matMuro); // fachada con la puerta
+  box("azBajS", 5.6, 3.2, 0.3, BX, 1.6, BZ + 2.1, matMuro);
+  box("azBajE", 0.3, 3.2, 4.5, BX + 2.65, 1.6, BZ, matMuro);
+  box("azBajO", 0.3, 3.2, 4.5, BX - 2.65, 1.6, BZ, matMuro);
+  box("azBajTecho", 6.1, 0.28, 5.0, BX, 3.3, BZ, matChapaOsc, { collide: false });
+  box("azBajMarcoO", 0.18, 2.5, 0.36, BX - 1.0, 1.25, BZ - 2.1, matHierro, { collide: false });
+  box("azBajMarcoE", 0.18, 2.5, 0.36, BX + 1.0, 1.25, BZ - 2.1, matHierro, { collide: false });
+  const puertaBaj = box("azBajPuerta", 1.8, 2.42, 0.12, BX, 1.21, BZ - 2.24, matChapaOsc);
+  box("azBajBarra", 1.2, 0.09, 0.09, BX, 1.15, BZ - 2.32, matHierro, { collide: false });
+  sign("ALA C — BAJADA", BX, 2.86, BZ - 2.28, Math.PI, "#cfc9b8", "#20221f", 2.4);
+  game.register(puertaBaj, "azBajada", "Volver a bajar al ala C", () => {
+    game.sfx.locked();
+    game.notify("Cortafuegos. Se ha cerrado sola al salir y por fuera no tiene manilla. Desde aquí solo se sube.", 5200);
+  });
 
   // ------------------------------------------------------------- maquinaria
   /** Unidad de clima: cajón de chapa con rejilla y tubos. */
@@ -302,47 +335,35 @@ export function buildLevel5(game: Game) {
   escaleraRoot.position.y = 4.6;
   const gancho = box("azGancho", 0.5, 0.3, 0.3, escX, 4.9, escBaseZ + 0.35, matRojo, { collide: false });
 
-  // ------------------------------------------------------------- extractores
-  const extractores: { mesh: Mesh; aspa: Mesh; flag: string; nombre: string; conMartillo: boolean }[] = [];
-  const mkExtractor = (x: number, z: number, flag: string, nombre: string, conMartillo: boolean) => {
-    const carc = MeshBuilder.CreateCylinder("azExt", { diameter: 1.5, height: 0.6, tessellation: 14 }, scene);
-    carc.position.set(x, 0.32, z);
-    carc.material = matChapa;
-    carc.checkCollisions = true;
-    const aspa = box("azAspa", 1.15, 0.05, 0.16, x, 0.62, z, matChapaOsc, { collide: false });
-    const aspa2 = box("azAspa2", 1.15, 0.05, 0.16, 0, 0, 0, matChapaOsc, { collide: false });
-    aspa2.parent = aspa;
-    aspa2.rotation.y = Math.PI / 2; // cruz de aspas
-    extractores.push({ mesh: carc, aspa, flag, nombre, conMartillo });
-    return carc;
-  };
-  mkExtractor(20, cz(16), "az_extA", "EXTRACTOR A", false);
-  mkExtractor(46, cz(13), "az_extB", "EXTRACTOR B", true);
+  // ------------------------------------------------------------- extractor
+  // Uno solo, y a la vista del camino a la caseta: es el paso que hay que dar
+  // antes de que el cuadro deje subir el automático del torno.
+  const extAspa = box("azAspa", 1.15, 0.05, 0.16, 0, 0, 0, matChapaOsc, { collide: false });
+  const extractor = MeshBuilder.CreateCylinder("azExt", { diameter: 1.6, height: 0.7, tessellation: 14 }, scene);
+  extractor.position.set(32, 0.37, cz(7));
+  extractor.material = matChapa;
+  extractor.checkCollisions = true;
+  extAspa.position.set(32, 0.72, cz(7));
+  const extAspa2 = box("azAspa2", 1.15, 0.05, 0.16, 0, 0, 0, matChapaOsc, { collide: false });
+  extAspa2.parent = extAspa;
+  extAspa2.rotation.y = Math.PI / 2; // cruz de aspas
+  sign("EXTRACTOR", 32, 1.15, cz(7) - 0.9, 0, "#cfc9b8", "#20221f", 1.4);
 
   // ------------------------------------------------------------- cuadro eléctrico
   const cuadroX = CX - 2.2;
   const cuadroZ = CZ - 2.3;
   box("azCuadro", 1.5, 1.1, 0.25, cuadroX, 1.55, cuadroZ, matChapaOsc, { collide: false });
-  const palancas: Mesh[] = [];
-  const ETIQ = ["EXTRACTOR A", "EXTRACTOR B", "TORNO ESCALERA"];
-  // palancas destacadas del frontal para que se puedan apuntar con holgura
-  for (let i = 0; i < 3; i++) {
-    const p = box("azPalanca" + i, 0.22, 0.44, 0.2, cuadroX - 0.45 + i * 0.45, 1.5, cuadroZ + 0.42, matRojo, { collide: false });
-    palancas.push(p);
-    sign(["A", "B", "TORNO"][i], cuadroX - 0.45 + i * 0.45, 1.16, cuadroZ + 0.44, Math.PI, "#cfc9b8", "#20221f", 0.5);
-  }
+  // una sola palanca: la del torno de la escalera
+  const palanca = box("azPalanca", 0.3, 0.5, 0.22, cuadroX, 1.5, cuadroZ + 0.42, matRojo, { collide: false });
+  sign("TORNO ESCALERA", cuadroX, 1.1, cuadroZ + 0.44, Math.PI, "#cfc9b8", "#20221f", 1.3);
   const luzCuadro = box("azLuzCuadro", 0.14, 0.14, 0.1, cuadroX + 0.62, 1.95, cuadroZ + 0.3, matRojo, { collide: false });
 
   // ------------------------------------------------------------- estado del puzle
-  const disy = [false, false, false];
-  let apagon = 0;
-
   const pintarCuadro = () => {
-    palancas.forEach((p, i) => {
-      p.material = disy[i] ? matVerde : matRojo;
-      p.rotation.x = disy[i] ? -0.5 : 0.5;
-    });
-    luzCuadro.material = state.get("az_luz") ? matVerde : apagon > performance.now() ? matAmbar : matRojo;
+    const on = !!state.get("az_luz");
+    palanca.material = on ? matVerde : matRojo;
+    palanca.rotation.x = on ? -0.5 : 0.5;
+    luzCuadro.material = on ? matVerde : state.get("az_ext") ? matAmbar : matRojo;
   };
   pintarCuadro();
 
@@ -362,28 +383,31 @@ export function buildLevel5(game: Game) {
   };
 
   // ------------------------------------------------------------- interacciones
-  const nota = box("azNota", 0.3, 0.012, 0.38, 30, 0.02, Z_OFF + 34, matPaper, { collide: false });
-  nota.rotation.y = -0.4;
-  game.register(nota, "azNota", "Leer la nota del suelo", () => {
+  // La nota, sobre un cajón justo delante de la puerta de bajada: es lo primero
+  // que se ve al salir y da los tres pasos del puzle en orden.
+  box("azCajon", 0.8, 0.75, 0.6, 48.4, 0.37, BZ - 4.8, matChapa);
+  const nota = box("azNota", 0.32, 0.014, 0.4, 48.4, 0.76, BZ - 4.8, matPaper, { collide: false });
+  nota.rotation.y = -0.35;
+  game.register(nota, "azNota", "Leer la nota", () => {
     state.set("az_nota");
     updateObjective5();
     game.talk(
       {
         n1: {
           speaker: "NOTA MANUSCRITA",
-          text: "«El que lea esto: ARRIBA está la salida.\nNo la de la calle. La otra.\nLa que no pasa por la puerta.»",
+          text: "«El que lea esto: ARRIBA está la salida.\nLa escalera de la azotea de arriba está plegada\ny sujeta con un gancho. Para soltarla hay tres cosas.»",
           next: "n2",
         },
         n2: {
-          text: "«La escalera del acceso está plegada y con gancho.\nSolo la suelta el torno, y el torno no tiene corriente:\nlos de mantenimiento bajaron los tres automáticos.»",
+          text: "«UNO. La caseta de mantenimiento.\nLa puerta está atrancada por dentro: se entra por el\nconducto, quitando la rejilla y pasando agachado.»",
           next: "n3",
         },
         n3: {
-          text: "«Y OJO: si das corriente al torno con los extractores\natascados, salta el diferencial y se apaga todo.\nPrimero los extractores. Luego el torno.»",
+          text: "«DOS. Dentro está el cuadro y la manivela.\nEl automático del torno no sube mientras el extractor\nesté agarrotado: van en la misma línea. Desatáscalo.»",
           next: "n4",
         },
         n4: {
-          text: "«La caseta está atrancada por dentro.\nSe entra por el conducto, quitando la rejilla.\nY hay que ir a rastras. — F.»",
+          text: "«TRES. Con corriente y la manivela, abre la válvula\ndel depósito de agua. El contrapeso baja\ny la escalera se suelta sola. — F.»",
         },
       },
       "n1"
@@ -415,86 +439,49 @@ export function buildLevel5(game: Game) {
     }
   );
 
-  // extractores
-  for (const ext of extractores) {
-    game.register(
-      ext.mesh,
-      "ext_" + ext.flag,
-      () => (state.get(ext.flag) ? ext.nombre + " — libre" : "Desatascar " + ext.nombre),
-      () => {
-        if (state.get(ext.flag)) {
-          game.notify("Gira suelto. Este ya está.");
-          return;
-        }
-        if (ext.conMartillo && !state.has("martillo")) {
-          game.sfx.locked();
-          game.notify("El eje está soldado de óxido. Haría falta algo contundente.");
-          return;
-        }
-        state.set(ext.flag);
-        if (ext.conMartillo) game.sfx.glass();
-        else game.sfx.doorCreak();
-        game.notify(
-          ext.conMartillo
-            ? "Dos golpes de martillo y el eje se suelta. Las aspas giran libres."
-            : "Sacas un nido de trapos y plumas del rodete. Las aspas giran libres.",
-          4200
-        );
-        updateObjective5();
+  // el extractor: se desatasca a mano, sin herramienta que buscar
+  game.register(
+    [extractor, extAspa],
+    "azExtractor",
+    () => (state.get("az_ext") ? "Extractor — ya gira libre" : "Desatascar el extractor"),
+    () => {
+      if (state.get("az_ext")) {
+        game.notify("Gira suelto. Este ya está.");
+        return;
       }
-    );
-  }
+      state.set("az_ext");
+      game.sfx.doorCreak();
+      game.notify("Sacas del rodete un nido de trapos y plumas. Las aspas giran libres.", 4200);
+      updateObjective5();
+    }
+  );
 
-  // cuadro eléctrico: orden correcto o salta el diferencial
-  for (let i = 0; i < 3; i++) {
-    game.register(
-      palancas[i],
-      "azPal" + i,
-      () => `${disy[i] ? "Bajar" : "Subir"} el automático — ${ETIQ[i]}`,
-      () => {
-        const now = performance.now();
-        if (now < apagon) {
-          game.notify("El diferencial sigue saltado. Hay que rearmarlo (el de la derecha).", 3200);
-          return;
-        }
-        if (i < 2) {
-          disy[i] = !disy[i];
-          game.sfx.switchClick();
-          pintarCuadro();
-          game.notify(disy[i] ? `${ETIQ[i]}: en marcha.` : `${ETIQ[i]}: parado.`);
-          return;
-        }
-        // el torno
-        if (state.get("az_luz")) {
-          state.set("az_luz", false);
-          disy[2] = false;
-          pintarCuadro();
-          game.notify("Cortas la corriente del torno.");
-          return;
-        }
-        const listos = state.get("az_extA") && state.get("az_extB") && disy[0] && disy[1];
-        if (!listos) {
-          apagon = now + 6000;
-          disy[0] = false;
-          disy[1] = false;
-          disy[2] = false;
-          state.set("az_luz", false);
-          pintarCuadro();
-          game.sfx.error();
-          game.sfx.caught();
-          game.notify("¡ZAS! Salta el diferencial y la azotea se queda muerta. Los extractores tienen que girar ANTES.", 5600);
-          updateObjective5();
-          return;
-        }
-        disy[2] = true;
-        state.set("az_luz");
-        pintarCuadro();
-        game.sfx.unlock();
-        game.notify("El torno zumba. Ya hay corriente en el gancho de la escalera.", 4600);
-        updateObjective5();
+  // cuadro eléctrico: una palanca, y solo sube cuando el extractor está libre
+  game.register(
+    palanca,
+    "azPalanca",
+    () => (state.get("az_luz") ? "Automático del torno — subido" : "Subir el automático del torno"),
+    () => {
+      if (state.get("az_luz")) {
+        game.notify("Ya hay corriente. Mejor no tocar nada más.");
+        return;
       }
-    );
-  }
+      if (!state.get("az_ext")) {
+        // sin castigo: la palanca se cae sola y dice exactamente qué falta
+        game.sfx.locked();
+        game.notify("La palanca vuelve a caer sola: el extractor agarrotado va en la misma línea. Hay que desatascarlo antes.", 5600);
+        state.set("az_visto_cuadro");
+        updateObjective5();
+        return;
+      }
+      state.set("az_luz");
+      pintarCuadro();
+      game.sfx.switchClick();
+      game.sfx.unlock();
+      game.notify("El torno zumba. Ya hay corriente en el gancho de la escalera.", 4600);
+      updateObjective5();
+    }
+  );
 
   // manivela dentro de la caseta
   if (!state.has("manivela")) {
@@ -572,18 +559,10 @@ export function buildLevel5(game: Game) {
   );
 
   // ------------------------------------------------------------- ambiente
-  let extT = 0;
   game.onUpdate.push((dt) => {
     if (state.get("nivel") !== 5) return;
-    extT += dt;
-    // las aspas giran si están desatascadas y su automático está arriba
-    extractores.forEach((ext, i) => {
-      if (state.get(ext.flag) && disy[i]) ext.aspa.rotation.y += dt * 9;
-    });
-    if (apagon && performance.now() > apagon && apagon > 0) {
-      apagon = 0;
-      pintarCuadro();
-    }
+    // las aspas giran en cuanto el extractor está libre y hay corriente
+    if (state.get("az_ext")) extAspa.rotation.y += dt * (state.get("az_luz") ? 9 : 1.2);
   });
 
   // ------------------------------------------------------------- objetivos
@@ -591,15 +570,14 @@ export function buildLevel5(game: Game) {
     if (state.get("nivel") !== 5) return;
     if (state.get("az_escalera")) return game.setObjective("Sube por la escalera a la azotea superior.");
     if (state.get("az_luz") && !state.has("manivela"))
-      return game.setObjective("Hay corriente.\nBusca la manivela de la válvula (caseta).");
-    if (state.get("az_luz")) return game.setObjective("Abre la válvula del contrapeso\n(junto al depósito de agua).");
-    const faltan = [!state.get("az_extA") && "A", !state.get("az_extB") && "B"].filter(Boolean);
-    if (state.get("az_rejilla") && faltan.length)
-      return game.setObjective(`Desatasca los extractores (${faltan.join(" y ")})\nantes de dar corriente al torno.`);
+      return game.setObjective("Hay corriente.\nCoge la manivela del banco de la caseta.");
+    if (state.get("az_luz")) return game.setObjective("Abre con la manivela la válvula del contrapeso\n(junto al depósito de agua).");
+    if (state.get("az_rejilla") && !state.get("az_ext"))
+      return game.setObjective("Desatasca el extractor.\nSin él, el automático del torno no sube.");
     if (state.get("az_rejilla"))
-      return game.setObjective("Sube los automáticos en el cuadro:\nprimero los extractores, luego el torno.");
-    if (state.get("az_nota")) return game.setObjective("Entra en la caseta de mantenimiento:\nquita la rejilla del conducto y pasa agachado.");
-    game.setObjective("Azotea del ala C.\nBusca la forma de subir más arriba.");
+      return game.setObjective("Sube el automático del torno\nen el cuadro de la caseta.");
+    if (state.get("az_nota")) return game.setObjective("Entra en la caseta de mantenimiento:\nquita la rejilla del conducto y pasa agachado [C].");
+    game.setObjective("Azotea del ala C.\nLee la nota del cajón para saber por dónde empezar.");
   };
 
   // ------------------------------------------------------------- luces y transición
@@ -613,16 +591,16 @@ export function buildLevel5(game: Game) {
       l.range = range;
       if (color) l.diffuse = color;
     };
-    const luna = new Color3(0.62, 0.7, 0.95);
+    const lunar = new Color3(0.62, 0.7, 0.95);
     const sodio = new Color3(1, 0.76, 0.42);
     set(0, 14, Z_OFF + 4, 0.42, 14, sodio); // sobre la escalera
-    set(1, 30, Z_OFF + 12, 0.3, 16, luna);
-    set(2, 45, Z_OFF + 20, 0.34, 15, luna);
+    set(1, 30, Z_OFF + 12, 0.3, 16, lunar);
+    set(2, 45, Z_OFF + 20, 0.34, 15, lunar);
     set(3, CX, CZ, 0.4, 9, sodio); // caseta
-    set(4, 20, Z_OFF + 32, 0.3, 13, luna);
+    set(4, 32, cz(7) + 1, 0.32, 13, lunar); // el extractor
     set(5, 46, Z_OFF + 27, 0.28, 12, sodio);
-    set(6, 8, Z_OFF + 22, 0.26, 12, luna);
-    set(7, 30, Z_OFF + 36, 0.3, 14, luna); // pretil sur
+    set(6, 8, Z_OFF + 22, 0.26, 12, lunar);
+    set(7, 48.6, BZ - 3.6, 0.5, 11, sodio); // sobre la puerta de bajada y la nota
   };
 
   game.enterLevel5 = async () => {
@@ -633,13 +611,15 @@ export function buildLevel5(game: Game) {
     state.set("nivel", 5);
     placeLights5();
     sky.setEnabled(true);
-    // el cielo y el paisaje piden aire: la niebla cerrada de interiores no vale
+    luna.setEnabled(true);
+    // el cielo pide aire: la niebla cerrada de interiores no vale
     scene.fogDensity = 0.006;
     scene.fogColor = new Color3(0.05, 0.06, 0.09);
     const cam = game.player.camera;
     cam.maxZ = 400;
-    cam.position.set(49, 1.62, Z_OFF + 33);
-    cam.rotation.set(0, -Math.PI / 2, 0);
+    // saliendo del casetón de bajada, mirando hacia el resto de la azotea
+    cam.position.set(49, 1.62, BZ - 3.4);
+    cam.rotation.set(0.12, Math.PI, 0);
     updateObjective5();
     hud.setLocation("AZOTEA · ALA C");
     game.savePlayer();
@@ -658,6 +638,7 @@ export function buildLevel5(game: Game) {
   if (state.get("nivel") === 5) {
     placeLights5();
     sky.setEnabled(true);
+    luna.setEnabled(true);
     scene.fogDensity = 0.006;
     scene.fogColor = new Color3(0.05, 0.06, 0.09);
     game.player.camera.maxZ = 400;

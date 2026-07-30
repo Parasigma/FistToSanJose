@@ -20,6 +20,8 @@ const $ = (id: string) => document.getElementById(id)!;
 export class Dialogue {
   isOpen = false;
   onBlip: (() => void) | null = null;
+  /** Aviso de cambio de nodo: lo usa el documento que se lee en la mano. */
+  onNode: ((speaker: string, text: string) => void) | null = null;
 
   private tree: DTree = {};
   private nodeId = "";
@@ -53,6 +55,7 @@ export class Dialogue {
     $("d-options").innerHTML = "";
     $("d-hint").textContent = "";
     this.fullText = typeof n.text === "function" ? n.text() : n.text;
+    this.onNode?.(this.lastSpeaker, this.fullText);
     this.charI = 0;
     this.typing = true;
     $("d-text").textContent = "";

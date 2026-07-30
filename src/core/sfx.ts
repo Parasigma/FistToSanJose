@@ -113,6 +113,17 @@ export class Sfx {
     setTimeout(() => this.tone(660, 0.12, 0.06, "triangle"), 80);
   }
 
+  /** Coger un papel del suelo o de un cajón: roce seco y corto. */
+  paper() {
+    this.noiseBurst(0.16, 3200, 1.1, 0.05, "highpass");
+    setTimeout(() => this.noiseBurst(0.13, 2400, 1.4, 0.035, "highpass"), 130);
+  }
+
+  /** Pasar de hoja mientras se lee. */
+  paperFlip() {
+    this.noiseBurst(0.1, 4200, 1.3, 0.032, "highpass");
+  }
+
   doorCreak() {
     this.tone(150, 0.7, 0.05, "sawtooth", 78);
     this.noiseBurst(0.5, 900, 3, 0.05, "bandpass");
